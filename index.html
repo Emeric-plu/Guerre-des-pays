@@ -992,1033 +992,77 @@
     </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+  <!-- Firebase SDK v10 Compat (compatible Safari/Chrome mobile & GitHub Pages) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
+  <script>
     (function () {
       'use strict';
 
       // =========================================================================
-      // 1. INITIALISATION FIREBASE (SAUVEGARDE AUTO CLOUD & MULTIJOUEUR)
+      // 1. INITIALISATION FIREBASE (CONFIG RÉELLE DU PROJET GUERRE-DES-PAYS)
       // =========================================================================
-      var appId = typeof __app_id !== 'undefined' ? __app_id : 'carte-des-pays-online';
-      var firebaseConfig = null;
-      try {
-        if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-          firebaseConfig = JSON.parse(__firebase_config);
-        }
-      } catch (e) {}
+      var firebaseConfig = {
+        apiKey: "AIzaSyCP3jdFi1J0tNQ6TjI5RBnsH9ZMhTNRXPc",
+        authDomain: "guerre-des-pays.firebaseapp.com",
+        databaseURL: "https://guerre-des-pays-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "guerre-des-pays",
+        storageBucket: "guerre-des-pays.firebasestorage.app",
+        messagingSenderId: "927233616745",
+        appId: "1:927233616745:web:b3205b17eb5ad6074f6bf8"
+      };
 
       var fbApp = null;
       var fbAuth = null;
       var fbDb = null;
+      var fbRtdb = null;
       var fbUser = null;
       var roomUnsub = null;
       var chatUnsub = null;
 
-      if (firebaseConfig) {
-        try {
-          fbApp = initializeApp(firebaseConfig);
-          fbAuth = getAuth(fbApp);
-          fbDb = getFirestore(fbApp);
-          onAuthStateChanged(fbAuth, function (user) {
+      try {
+        if (typeof firebase !== 'undefined') {
+          fbApp = firebase.apps && firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
+          fbAuth = firebase.auth();
+          try { fbDb = firebase.firestore(); } catch (e) {}
+          try { fbRtdb = firebase.database(); } catch (e) {}
+
+          fbAuth.onAuthStateChanged(function (user) {
             fbUser = user;
-            if (user && state.cloud.username && state.cloud.pin) {
+            if (user && state.cloud.username && state.cloud.pin && state.cloud.connected) {
               pullCloudSave(state.cloud.username, state.cloud.pin, true);
             }
           });
-          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            signInWithCustomToken(fbAuth, __initial_auth_token).catch(function () { signInAnonymously(fbAuth); });
-          } else {
-            signInAnonymously(fbAuth).catch(function () {});
-          }
-        } catch (e) {}
-      }
+
+          fbAuth.signInAnonymously().catch(function () {
+            // Si l'auth anonyme n'est pas activée, le fallback REST / public rules prend le relais
+          });
+        }
+      } catch (e) {}
 
       // =========================================================================
       // 2. CONSTANTES ÉCONOMIQUES, DÉVELOPPEMENT, GÉNIE & CONQUÊTES
-      // =========================================================================
-      var LOCAL_CACHE_KEY = 'carte_des_pays_v10';
-      var MAP_W = 1440;
-      var MAP_H = 830;
-
-      var STARTING_MINES = 2;
-      var STARTING_FARMS = 1;
-      var STARTING_GOLD = 0;
-      var MINE_COST = 100000;
-      var MINE_RATE = 2;
-      var FARM_COST = 80000;
-      var TROOP_FOOD_COST = 1;
-
-      var DEV_LEVELS = {
-        1: { label: 'Peu développé', count: 2 },
-        2: { label: 'En développement', count: 3 },
-        3: { label: 'Développé', count: 4 },
-        4: { label: 'Très développé', count: 5 },
-        5: { label: 'Superpuissance', count: 6 }
-      };
-
-      // Amélioration Niveau 1 -> 5 (5x plus chère + Connaissances)
-      var DEV_UPGRADE_COSTS = {
-        1: { gold: 2500000, knowledge: 120 },
-        2: { gold: 10000000, knowledge: 450 },
-        3: { gold: 35000000, knowledge: 1400 },
-        4: { gold: 100000000, knowledge: 4000 }
-      };
-
-      // Paliers de coût des 6 troupes
-      var TROOP_TIERS = [
-        { cost: 150000 },
-        { cost: 300000 },
-        { cost: 600000 },
-        { cost: 1200000 },
-        { cost: 2400000 },
-        { cost: 4800000 }
-      ];
-
-      // Seuils de Connaissances requis pour les 2 dernières troupes de chaque pays
-      var LAST_TWO_KNOWLEDGE_REQ = {
-        2: [40, 110],
-        3: [90, 260],
-        4: [150, 450],
-        5: [550, 1350],
-        6: [1400, 3800]
-      };
-
-      // Expéditions du Génie (longues, chronométrées via Date.now())
-      var GENIUS_MISSIONS = [
-        {
-          id: 'local_visit',
-          title: 'Visiter la région',
-          desc: 'Observation locale des artisans, reliefs et ressources naturelles.',
-          cost: 0,
-          durationSec: 45,
-          minGain: 6,
-          maxGain: 10,
-          foreign: false
-        },
-        {
-          id: 'academy_study',
-          title: 'Étudier en Académie',
-          desc: 'Lecture approfondie des traités de sciences, tactique et ingénierie.',
-          cost: 75000,
-          durationSec: 150,
-          minGain: 22,
-          maxGain: 32,
-          foreign: false
-        },
-        {
-          id: 'foreign_voyage',
-          title: 'Voyage diplomatique à l’étranger',
-          desc: 'Expédition vers une capitale étrangère (+25 🧠 bonus si pays Niv. 4-5).',
-          cost: 300000,
-          durationSec: 360,
-          minGain: 60,
-          maxGain: 85,
-          foreign: true
-        },
-        {
-          id: 'world_summit',
-          title: 'Sommet Scientifique Mondial',
-          desc: 'Grandes recherches internationales et percées technologiques majeures.',
-          cost: 1200000,
-          durationSec: 900,
-          minGain: 160,
-          maxGain: 220,
-          foreign: false
-        }
-      ];
-
-      var BIOME_COLORS = {
-        polaire: '#e2e8f0',
-        boreal: '#4d7c0f',
-        tempere: '#16a34a',
-        steppe: '#ca8a04',
-        aride: '#d97706',
-        tropical: '#15803d'
-      };
-
-      // =========================================================================
-      // 3. DONNÉES DES 28 PAYS & LEURS 6 TROUPES EXCLUSIVES
-      // =========================================================================
-      var COUNTRIES = [
-        {
-          id: 'GL', name: 'Groenland', region: 'Arctique', biome: 'polaire', dev: 3,
-          maxMines: 420000, maxSoldiers: 1050000, cx: 455, cy: 118,
-          d: 'M395,55 L495,42 L542,88 L508,162 L448,195 L412,155 L382,102 Z',
-          troops: [
-            { name: 'Guerrier des glaces', art: 'gl_warrior', atk: 18, def: 16, hp: 90 },
-            { name: 'Harponneur', art: 'gl_harpoon', atk: 28, def: 18, hp: 110 },
-            { name: 'Pingouin artificier', art: 'gl_penguin', atk: 46, def: 22, hp: 130 },
-            { name: 'Ours de guerre', art: 'gl_bear', atk: 68, def: 58, hp: 260 },
-            { name: 'Brise-glace arctique', art: 'gl_icebreaker', atk: 105, def: 90, hp: 410 },
-            { name: 'Forteresse Boréale', art: 'gl_citadel', atk: 155, def: 140, hp: 620 }
-          ]
-        },
-        {
-          id: 'CA', name: 'Canada', region: 'Amérique du Nord', biome: 'boreal', dev: 3,
-          maxMines: 620000, maxSoldiers: 1550000, cx: 255, cy: 215,
-          d: 'M130,150 L250,130 L355,155 L368,235 L295,268 L175,265 L125,215 Z',
-          troops: [
-            { name: 'Ranger des forêts', art: 'infantry_green', atk: 17, def: 15, hp: 85 },
-            { name: 'Tireur monté', art: 'cavalry', atk: 26, def: 20, hp: 115 },
-            { name: 'Sapeur du Nord', art: 'artillery', atk: 42, def: 26, hp: 140 },
-            { name: 'Blindé Grizzly', art: 'tank', atk: 65, def: 55, hp: 245 },
-            { name: 'Escadron Caribou', art: 'jet', atk: 102, def: 82, hp: 380 },
-            { name: 'Colosse Polaire', art: 'mecha', atk: 150, def: 130, hp: 590 }
-          ]
-        },
-        {
-          id: 'US', name: 'États-Unis', region: 'Amérique du Nord', biome: 'tempere', dev: 5,
-          maxMines: 1000000, maxSoldiers: 2500000, cx: 248, cy: 318,
-          d: 'M135,270 L325,270 L345,320 L300,368 L185,365 L130,322 Z',
-          troops: [
-            { name: 'Marine d’assaut', art: 'infantry_blue', atk: 19, def: 16, hp: 92 },
-            { name: 'Cavalier aéroporté', art: 'heli', atk: 30, def: 22, hp: 125 },
-            { name: 'Artillerie Paladin', art: 'artillery', atk: 48, def: 30, hp: 155 },
-            { name: 'Char Abrams', art: 'tank', atk: 74, def: 64, hp: 280 },
-            { name: 'Chasseur Furtif Raptor', art: 'jet', atk: 115, def: 92, hp: 420 },
-            { name: 'Porte-avions Titan', art: 'carrier', atk: 172, def: 148, hp: 680 }
-          ]
-        },
-        {
-          id: 'MX', name: 'Mexique', region: 'Amérique centrale', biome: 'aride', dev: 3,
-          maxMines: 340000, maxSoldiers: 850000, cx: 215, cy: 405,
-          d: 'M165,368 L255,372 L272,425 L235,450 L185,420 Z',
-          troops: [
-            { name: 'Guerrier Jaguar', art: 'infantry_gold', atk: 18, def: 15, hp: 88 },
-            { name: 'Lancier du désert', art: 'cavalry', atk: 27, def: 19, hp: 112 },
-            { name: 'Canonnière Aztèque', art: 'artillery', atk: 43, def: 26, hp: 142 },
-            { name: 'Blindé Soleil', art: 'tank', atk: 66, def: 54, hp: 240 },
-            { name: 'Escadrille Quetzal', art: 'jet', atk: 100, def: 80, hp: 375 },
-            { name: 'Pyramide d’Acier', art: 'mecha', atk: 148, def: 128, hp: 580 }
-          ]
-        },
-        {
-          id: 'CO', name: 'Colombie', region: 'Amérique du Sud', biome: 'tropical', dev: 2,
-          maxMines: 240000, maxSoldiers: 600000, cx: 315, cy: 492,
-          d: 'M285,462 L342,465 L352,515 L302,525 L282,495 Z',
-          troops: [
-            { name: 'Éclaireur de la jungle', art: 'infantry_green', atk: 17, def: 15, hp: 85 },
-            { name: 'Guérillero des Andes', art: 'infantry_gold', atk: 26, def: 20, hp: 112 },
-            { name: 'Mortier Emeraude', art: 'artillery', atk: 42, def: 27, hp: 142 },
-            { name: 'Blindé Condor', art: 'tank', atk: 64, def: 52, hp: 238 },
-            { name: 'Chasseur Bolívar', art: 'jet', atk: 98, def: 79, hp: 370 },
-            { name: 'Forteresse El Dorado', art: 'mecha', atk: 145, def: 126, hp: 575 }
-          ]
-        },
-        {
-          id: 'PE', name: 'Pérou', region: 'Amérique du Sud', biome: 'steppe', dev: 2,
-          maxMines: 260000, maxSoldiers: 650000, cx: 308, cy: 565,
-          d: 'M280,528 L335,532 L342,598 L295,602 L276,562 Z',
-          troops: [
-            { name: 'Frondeur Inca', art: 'infantry_gold', atk: 17, def: 15, hp: 86 },
-            { name: 'Garde des Cimes', art: 'cavalry', atk: 26, def: 21, hp: 115 },
-            { name: 'Batterie Cuzco', art: 'artillery', atk: 43, def: 27, hp: 144 },
-            { name: 'Char Inti', art: 'tank', atk: 65, def: 53, hp: 242 },
-            { name: 'Faucon des Andes', art: 'jet', atk: 99, def: 80, hp: 372 },
-            { name: 'Colosse Viracocha', art: 'mecha', atk: 146, def: 127, hp: 580 }
-          ]
-        },
-        {
-          id: 'BR', name: 'Brésil', region: 'Amérique du Sud', biome: 'tropical', dev: 3,
-          maxMines: 640000, maxSoldiers: 1600000, cx: 405, cy: 565,
-          d: 'M345,495 L455,512 L475,585 L420,645 L355,615 L340,545 Z',
-          troops: [
-            { name: 'Sentinelle d’Amazonie', art: 'infantry_green', atk: 18, def: 16, hp: 90 },
-            { name: 'Commando fluvial', art: 'heli', atk: 28, def: 21, hp: 118 },
-            { name: 'Artillerie Astros', art: 'artillery', atk: 45, def: 28, hp: 148 },
-            { name: 'Char Osório', art: 'tank', atk: 68, def: 56, hp: 252 },
-            { name: 'Chasseur Super Tucano', art: 'jet', atk: 104, def: 84, hp: 390 },
-            { name: 'Titan d’Amazone', art: 'mecha', atk: 154, def: 132, hp: 605 }
-          ]
-        },
-        {
-          id: 'CL', name: 'Chili', region: 'Amérique du Sud', biome: 'steppe', dev: 2,
-          maxMines: 220000, maxSoldiers: 550000, cx: 315, cy: 678,
-          d: 'M302,608 L328,612 L334,752 L306,748 Z',
-          troops: [
-            { name: 'Chasseur d’Atacama', art: 'infantry_blue', atk: 17, def: 16, hp: 88 },
-            { name: 'Montagnard Austral', art: 'cavalry', atk: 26, def: 20, hp: 114 },
-            { name: 'Canon côtier', art: 'artillery', atk: 42, def: 28, hp: 145 },
-            { name: 'Blindé Magellan', art: 'tank', atk: 64, def: 54, hp: 240 },
-            { name: 'Aigle du Pacifique', art: 'jet', atk: 98, def: 81, hp: 375 },
-            { name: 'Cuirassé Cap Horn', art: 'carrier', atk: 146, def: 129, hp: 585 }
-          ]
-        },
-        {
-          id: 'AR', name: 'Argentine', region: 'Amérique du Sud', biome: 'steppe', dev: 2,
-          maxMines: 320000, maxSoldiers: 800000, cx: 362, cy: 685,
-          d: 'M334,615 L408,645 L388,750 L338,752 Z',
-          troops: [
-            { name: 'Gaucho éclaireur', art: 'cavalry', atk: 18, def: 15, hp: 88 },
-            { name: 'Grenadier des Pampas', art: 'infantry_blue', atk: 27, def: 20, hp: 116 },
-            { name: 'Batterie Patagonie', art: 'artillery', atk: 43, def: 27, hp: 144 },
-            { name: 'Char TAM', art: 'tank', atk: 66, def: 54, hp: 245 },
-            { name: 'Chasseur Pampa', art: 'jet', atk: 100, def: 82, hp: 380 },
-            { name: 'Forteresse Australe', art: 'mecha', atk: 148, def: 128, hp: 585 }
-          ]
-        },
-        {
-          id: 'IS', name: 'Islande', region: 'Europe du Nord', biome: 'polaire', dev: 1,
-          maxMines: 100000, maxSoldiers: 250000, cx: 562, cy: 175,
-          d: 'M535,160 L588,156 L594,188 L538,192 Z',
-          troops: [
-            { name: 'Garde des Geysers', art: 'gl_warrior', atk: 17, def: 16, hp: 88 },
-            { name: 'Navigateur Viking', art: 'gl_harpoon', atk: 27, def: 20, hp: 115 },
-            { name: 'Artilleur Volcanique', art: 'artillery', atk: 43, def: 27, hp: 145 },
-            { name: 'Brise-glace Nordique', art: 'gl_icebreaker', atk: 65, def: 55, hp: 242 },
-            { name: 'Faucon Boréal', art: 'jet', atk: 99, def: 80, hp: 375 },
-            { name: 'Titan de Glace', art: 'gl_citadel', atk: 148, def: 130, hp: 590 }
-          ]
-        },
-        {
-          id: 'GB', name: 'Royaume-Uni', region: 'Europe de l’Ouest', biome: 'tempere', dev: 4,
-          maxMines: 360000, maxSoldiers: 900000, cx: 615, cy: 252,
-          d: 'M596,225 L632,222 L638,276 L598,278 Z',
-          troops: [
-            { name: 'Garde Royal', art: 'infantry_red', atk: 18, def: 17, hp: 92 },
-            { name: 'Parachutiste SAS', art: 'heli', atk: 29, def: 22, hp: 122 },
-            { name: 'Artillerie Royale', art: 'artillery', atk: 46, def: 29, hp: 150 },
-            { name: 'Char Challenger', art: 'tank', atk: 72, def: 64, hp: 275 },
-            { name: 'Chasseur Typhoon', art: 'jet', atk: 110, def: 89, hp: 410 },
-            { name: 'Cuirassé Sovereign', art: 'carrier', atk: 162, def: 142, hp: 650 }
-          ]
-        },
-        {
-          id: 'FR', name: 'France', region: 'Europe de l’Ouest', biome: 'tempere', dev: 4,
-          maxMines: 440000, maxSoldiers: 1100000, cx: 646, cy: 304,
-          d: 'M618,282 L674,280 L678,328 L620,330 Z',
-          troops: [
-            { name: 'Légionnaire', art: 'infantry_blue', atk: 19, def: 16, hp: 92 },
-            { name: 'Chasseur Alpin', art: 'heli', atk: 29, def: 22, hp: 122 },
-            { name: 'Canon CAESAR', art: 'artillery', atk: 48, def: 28, hp: 150 },
-            { name: 'Char Leclerc', art: 'tank', atk: 73, def: 63, hp: 274 },
-            { name: 'Chasseur Rafale', art: 'jet', atk: 112, def: 90, hp: 412 },
-            { name: 'Porte-avions Charles', art: 'carrier', atk: 165, def: 144, hp: 655 }
-          ]
-        },
-        {
-          id: 'ES', name: 'Espagne', region: 'Europe du Sud', biome: 'aride', dev: 3,
-          maxMines: 320000, maxSoldiers: 800000, cx: 616, cy: 356,
-          d: 'M590,334 L646,334 L644,378 L588,376 Z',
-          troops: [
-            { name: 'Tercio d’élite', art: 'infantry_red', atk: 18, def: 16, hp: 90 },
-            { name: 'Caballero blindé', art: 'cavalry', atk: 27, def: 21, hp: 116 },
-            { name: 'Batterie Ibérique', art: 'artillery', atk: 44, def: 28, hp: 146 },
-            { name: 'Char Pizarro', art: 'tank', atk: 67, def: 56, hp: 250 },
-            { name: 'Faucon d’Andalousie', art: 'jet', atk: 102, def: 83, hp: 385 },
-            { name: 'Armada Invincible', art: 'carrier', atk: 152, def: 134, hp: 605 }
-          ]
-        },
-        {
-          id: 'DE', name: 'Allemagne', region: 'Europe centrale', biome: 'tempere', dev: 4,
-          maxMines: 420000, maxSoldiers: 1050000, cx: 696, cy: 276,
-          d: 'M676,252 L722,252 L724,302 L676,302 Z',
-          troops: [
-            { name: 'Panzergrenadier', art: 'infantry_green', atk: 19, def: 17, hp: 94 },
-            { name: 'Éclaireur Fennek', art: 'cavalry', atk: 29, def: 23, hp: 124 },
-            { name: 'Obusier PzH 2000', art: 'artillery', atk: 49, def: 30, hp: 154 },
-            { name: 'Char Leopard', art: 'tank', atk: 75, def: 65, hp: 282 },
-            { name: 'Intercepteur Eurofighter', art: 'jet', atk: 111, def: 90, hp: 412 },
-            { name: 'Forteresse Rhin', art: 'mecha', atk: 164, def: 145, hp: 655 }
-          ]
-        },
-        {
-          id: 'IT', name: 'Italie', region: 'Europe du Sud', biome: 'tempere', dev: 3,
-          maxMines: 300000, maxSoldiers: 750000, cx: 698, cy: 344,
-          d: 'M678,314 L712,316 L724,374 L694,376 L682,340 Z',
-          troops: [
-            { name: 'Centurion moderne', art: 'infantry_red', atk: 18, def: 16, hp: 90 },
-            { name: 'Bersaglieri rapide', art: 'cavalry', atk: 28, def: 20, hp: 116 },
-            { name: 'Artillerie Alpine', art: 'artillery', atk: 44, def: 28, hp: 146 },
-            { name: 'Char Ariete', art: 'tank', atk: 67, def: 56, hp: 250 },
-            { name: 'Chasseur Vésuve', art: 'jet', atk: 103, def: 83, hp: 386 },
-            { name: 'Croiseur Imperium', art: 'carrier', atk: 152, def: 134, hp: 605 }
-          ]
-        },
-        {
-          id: 'NO', name: 'Norvège', region: 'Scandinavie', biome: 'boreal', dev: 2,
-          maxMines: 240000, maxSoldiers: 600000, cx: 678, cy: 175,
-          d: 'M662,135 L696,132 L694,218 L664,215 Z',
-          troops: [
-            { name: 'Garde des Fjords', art: 'gl_warrior', atk: 18, def: 16, hp: 90 },
-            { name: 'Ski-commando', art: 'gl_harpoon', atk: 27, def: 21, hp: 116 },
-            { name: 'Batterie Arctique', art: 'artillery', atk: 43, def: 28, hp: 145 },
-            { name: 'Blindé Drakkar', art: 'tank', atk: 65, def: 55, hp: 245 },
-            { name: 'Valkyrie du Nord', art: 'jet', atk: 100, def: 82, hp: 380 },
-            { name: 'Cuirassé Odin', art: 'carrier', atk: 149, def: 131, hp: 590 }
-          ]
-        },
-        {
-          id: 'SE', name: 'Suède', region: 'Scandinavie', biome: 'boreal', dev: 2,
-          maxMines: 280000, maxSoldiers: 700000, cx: 718, cy: 182,
-          d: 'M698,136 L738,140 L736,225 L700,222 Z',
-          troops: [
-            { name: 'Infanterie Boréale', art: 'infantry_blue', atk: 18, def: 16, hp: 90 },
-            { name: 'Éclaireur Nordique', art: 'cavalry', atk: 27, def: 21, hp: 116 },
-            { name: 'Canon Archer', art: 'artillery', atk: 45, def: 28, hp: 146 },
-            { name: 'Char Stridsvagn', art: 'tank', atk: 67, def: 56, hp: 250 },
-            { name: 'Chasseur Gripen', art: 'jet', atk: 104, def: 84, hp: 388 },
-            { name: 'Bastion Baltique', art: 'mecha', atk: 151, def: 133, hp: 600 }
-          ]
-        },
-        {
-          id: 'PL', name: 'Pologne', region: 'Europe centrale', biome: 'tempere', dev: 3,
-          maxMines: 300000, maxSoldiers: 750000, cx: 748, cy: 274,
-          d: 'M726,250 L774,250 L776,298 L726,298 Z',
-          troops: [
-            { name: 'Fantassin de la Vistule', art: 'infantry_red', atk: 18, def: 16, hp: 90 },
-            { name: 'Hussard Ailé', art: 'cavalry', atk: 29, def: 21, hp: 118 },
-            { name: 'Obusier Krab', art: 'artillery', atk: 45, def: 28, hp: 148 },
-            { name: 'Char PT-91', art: 'tank', atk: 68, def: 56, hp: 252 },
-            { name: 'Aigle Blanc', art: 'jet', atk: 103, def: 83, hp: 386 },
-            { name: 'Forteresse Varsovie', art: 'mecha', atk: 152, def: 134, hp: 605 }
-          ]
-        },
-        {
-          id: 'UA', name: 'Ukraine', region: 'Europe de l’Est', biome: 'steppe', dev: 2,
-          maxMines: 360000, maxSoldiers: 900000, cx: 806, cy: 286,
-          d: 'M778,258 L842,262 L840,312 L778,310 Z',
-          troops: [
-            { name: 'Cosaque des steppes', art: 'cavalry', atk: 18, def: 16, hp: 90 },
-            { name: 'Opérateur de drone', art: 'heli', atk: 29, def: 21, hp: 118 },
-            { name: 'Batterie Bohdana', art: 'artillery', atk: 46, def: 28, hp: 148 },
-            { name: 'Char Oplot', art: 'tank', atk: 68, def: 57, hp: 254 },
-            { name: 'Faucon de Kiev', art: 'jet', atk: 103, def: 83, hp: 386 },
-            { name: 'Colosse du Dniepr', art: 'mecha', atk: 152, def: 134, hp: 605 }
-          ]
-        },
-        {
-          id: 'RU', name: 'Russie', region: 'Eurasie', biome: 'boreal', dev: 5,
-          maxMines: 1000000, maxSoldiers: 2500000, cx: 990, cy: 195,
-          d: 'M745,115 L1255,105 L1315,175 L1235,255 L965,268 L845,255 L750,215 Z',
-          troops: [
-            { name: 'Garde Sibérien', art: 'infantry_green', atk: 19, def: 17, hp: 94 },
-            { name: 'Spetsnaz arctique', art: 'heli', atk: 30, def: 23, hp: 125 },
-            { name: 'Lance-roquettes Katyusha', art: 'artillery', atk: 50, def: 29, hp: 156 },
-            { name: 'Char Armata', art: 'tank', atk: 76, def: 65, hp: 285 },
-            { name: 'Intercepteur Sukhoi', art: 'jet', atk: 114, def: 92, hp: 422 },
-            { name: 'Croiseur Kirov', art: 'carrier', atk: 170, def: 148, hp: 675 }
-          ]
-        },
-        {
-          id: 'TR', name: 'Turquie', region: 'Anatolie', biome: 'steppe', dev: 3,
-          maxMines: 320000, maxSoldiers: 800000, cx: 818, cy: 356,
-          d: 'M776,338 L866,338 L864,376 L776,374 Z',
-          troops: [
-            { name: 'Janissaire moderne', art: 'infantry_red', atk: 18, def: 16, hp: 90 },
-            { name: 'Drone Bayraktar', art: 'heli', atk: 29, def: 21, hp: 118 },
-            { name: 'Obusier Fırtına', art: 'artillery', atk: 45, def: 28, hp: 148 },
-            { name: 'Char Altay', art: 'tank', atk: 68, def: 57, hp: 252 },
-            { name: 'Chasseur Kaan', art: 'jet', atk: 104, def: 84, hp: 388 },
-            { name: 'Bastion du Bosphore', art: 'carrier', atk: 153, def: 135, hp: 610 }
-          ]
-        },
-        {
-          id: 'SA', name: 'Arabie Saoudite', region: 'Moyen-Orient', biome: 'aride', dev: 3,
-          maxMines: 460000, maxSoldiers: 1150000, cx: 868, cy: 442,
-          d: 'M822,402 L914,408 L924,478 L836,482 Z',
-          troops: [
-            { name: 'Garde des Dunes', art: 'infantry_gold', atk: 18, def: 16, hp: 90 },
-            { name: 'Cavalier du Désert', art: 'cavalry', atk: 28, def: 21, hp: 118 },
-            { name: 'Batterie du Golfe', art: 'artillery', atk: 45, def: 28, hp: 148 },
-            { name: 'Blindé Mirage', art: 'tank', atk: 68, def: 57, hp: 254 },
-            { name: 'Faucon d’Arabie', art: 'jet', atk: 105, def: 85, hp: 392 },
-            { name: 'Citadelle d’Or', art: 'mecha', atk: 155, def: 136, hp: 615 }
-          ]
-        },
-        {
-          id: 'MA', name: 'Maroc', region: 'Afrique du Nord', biome: 'aride', dev: 2,
-          maxMines: 260000, maxSoldiers: 650000, cx: 602, cy: 416,
-          d: 'M576,390 L632,390 L628,444 L572,442 Z',
-          troops: [
-            { name: 'Garde de l’Atlas', art: 'infantry_red', atk: 18, def: 16, hp: 90 },
-            { name: 'Méhariste saharien', art: 'cavalry', atk: 27, def: 21, hp: 116 },
-            { name: 'Artillerie Royale', art: 'artillery', atk: 43, def: 28, hp: 145 },
-            { name: 'Char Lion de l’Atlas', art: 'tank', atk: 66, def: 55, hp: 246 },
-            { name: 'Faucon du Détroit', art: 'jet', atk: 101, def: 82, hp: 382 },
-            { name: 'Forteresse Kasbah', art: 'mecha', atk: 149, def: 131, hp: 595 }
-          ]
-        },
-        {
-          id: 'EG', name: 'Égypte', region: 'Afrique du Nord', biome: 'aride', dev: 2,
-          maxMines: 320000, maxSoldiers: 800000, cx: 774, cy: 434,
-          d: 'M744,404 L806,404 L806,466 L744,466 Z',
-          troops: [
-            { name: 'Gardien du Nil', art: 'infantry_gold', atk: 18, def: 16, hp: 90 },
-            { name: 'Éclaireur du Sinaï', art: 'cavalry', atk: 27, def: 21, hp: 116 },
-            { name: 'Batterie de Suez', art: 'artillery', atk: 44, def: 28, hp: 146 },
-            { name: 'Char Ramsès', art: 'tank', atk: 67, def: 56, hp: 250 },
-            { name: 'Faucon Horus', art: 'jet', atk: 102, def: 83, hp: 384 },
-            { name: 'Colosse Pharaon', art: 'mecha', atk: 151, def: 133, hp: 600 }
-          ]
-        },
-        {
-          id: 'NG', name: 'Nigeria', region: 'Afrique de l’Ouest', biome: 'tropical', dev: 2,
-          maxMines: 340000, maxSoldiers: 850000, cx: 682, cy: 522,
-          d: 'M652,492 L714,492 L714,552 L652,552 Z',
-          troops: [
-            { name: 'Sentinelle du Niger', art: 'infantry_green', atk: 18, def: 16, hp: 90 },
-            { name: 'Commando Lagune', art: 'heli', atk: 28, def: 21, hp: 118 },
-            { name: 'Artillerie Savane', art: 'artillery', atk: 44, def: 28, hp: 146 },
-            { name: 'Blindé Léopard Noir', art: 'tank', atk: 66, def: 55, hp: 248 },
-            { name: 'Aigle d’Abuja', art: 'jet', atk: 101, def: 82, hp: 382 },
-            { name: 'Titan d’Afrique', art: 'mecha', atk: 150, def: 132, hp: 598 }
-          ]
-        },
-        {
-          id: 'ZA', name: 'Afrique du Sud', region: 'Afrique australe', biome: 'steppe', dev: 2,
-          maxMines: 380000, maxSoldiers: 950000, cx: 742, cy: 676,
-          d: 'M704,634 L782,634 L772,718 L712,716 Z',
-          troops: [
-            { name: 'Ranger du Veld', art: 'infantry_green', atk: 18, def: 16, hp: 90 },
-            { name: 'Hélicoptère Rooivalk', art: 'heli', atk: 29, def: 22, hp: 120 },
-            { name: 'Obusier G6 Rhino', art: 'artillery', atk: 46, def: 29, hp: 150 },
-            { name: 'Char Olifant', art: 'tank', atk: 68, def: 57, hp: 254 },
-            { name: 'Chasseur Cheetah', art: 'jet', atk: 103, def: 84, hp: 388 },
-            { name: 'Bastion du Cap', art: 'mecha', atk: 153, def: 135, hp: 610 }
-          ]
-        },
-        {
-          id: 'MG', name: 'Madagascar', region: 'Océan Indien', biome: 'tropical', dev: 1,
-          maxMines: 180000, maxSoldiers: 450000, cx: 834, cy: 644,
-          d: 'M818,602 L852,606 L846,688 L814,682 Z',
-          troops: [
-            { name: 'Guerrier des Baobabs', art: 'infantry_green', atk: 17, def: 16, hp: 88 },
-            { name: 'Éclaireur côtier', art: 'cavalry', atk: 26, def: 20, hp: 114 },
-            { name: 'Batterie Insulaire', art: 'artillery', atk: 42, def: 27, hp: 144 },
-            { name: 'Blindé Lémurien', art: 'tank', atk: 64, def: 54, hp: 242 },
-            { name: 'Faucon de l’Océan', art: 'jet', atk: 98, def: 80, hp: 375 },
-            { name: 'Forteresse Royale', art: 'mecha', atk: 147, def: 129, hp: 585 }
-          ]
-        },
-        {
-          id: 'KZ', name: 'Kazakhstan', region: 'Asie centrale', biome: 'steppe', dev: 1,
-          maxMines: 420000, maxSoldiers: 1050000, cx: 942, cy: 292,
-          d: 'M868,266 L1018,266 L1014,322 L866,320 Z',
-          troops: [
-            { name: 'Cavalier des Steppes', art: 'cavalry', atk: 18, def: 16, hp: 90 },
-            { name: 'Archer à cheval', art: 'infantry_blue', atk: 27, def: 20, hp: 115 },
-            { name: 'Lance-missiles Baïkonour', art: 'artillery', atk: 45, def: 28, hp: 148 },
-            { name: 'Char T-72KZ', art: 'tank', atk: 67, def: 56, hp: 250 },
-            { name: 'Aigle des Steppes', art: 'jet', atk: 102, def: 83, hp: 384 },
-            { name: 'Station Orbitale', art: 'mecha', atk: 152, def: 134, hp: 605 }
-          ]
-        },
-        {
-          id: 'IN', name: 'Inde', region: 'Asie du Sud', biome: 'tropical', dev: 3,
-          maxMines: 660000, maxSoldiers: 1650000, cx: 992, cy: 446,
-          d: 'M946,386 L1042,390 L1018,512 L978,512 L946,434 Z',
-          troops: [
-            { name: 'Garde Gurkha', art: 'infantry_gold', atk: 19, def: 16, hp: 92 },
-            { name: 'Éléphant cuirassé', art: 'cavalry', atk: 29, def: 23, hp: 126 },
-            { name: 'Artillerie Pinaka', art: 'artillery', atk: 46, def: 29, hp: 150 },
-            { name: 'Char Arjun', art: 'tank', atk: 70, def: 59, hp: 262 },
-            { name: 'Chasseur Tejas', art: 'jet', atk: 106, def: 86, hp: 398 },
-            { name: 'Forteresse Bharat', art: 'mecha', atk: 158, def: 138, hp: 625 }
-          ]
-        },
-        {
-          id: 'CN', name: 'Chine', region: 'Asie de l’Est', biome: 'tempere', dev: 5,
-          maxMines: 1000000, maxSoldiers: 2500000, cx: 1125, cy: 365,
-          d: 'M1025,292 L1215,286 L1232,402 L1115,425 L1035,382 Z',
-          troops: [
-            { name: 'Garde de la Muraille', art: 'infantry_red', atk: 19, def: 17, hp: 94 },
-            { name: 'Cavalier de Jade', art: 'cavalry', atk: 30, def: 23, hp: 124 },
-            { name: 'Batterie Longue Marche', art: 'artillery', atk: 49, def: 30, hp: 156 },
-            { name: 'Char Dragon Type-99', art: 'tank', atk: 75, def: 65, hp: 282 },
-            { name: 'Dragon Céleste J-20', art: 'jet', atk: 114, def: 92, hp: 422 },
-            { name: 'Colosse Impérial', art: 'mecha', atk: 171, def: 148, hp: 678 }
-          ]
-        },
-        {
-          id: 'JP', name: 'Japon', region: 'Asie de l’Est', biome: 'tempere', dev: 4,
-          maxMines: 360000, maxSoldiers: 900000, cx: 1278, cy: 356,
-          d: 'M1264,316 L1294,318 L1288,396 L1260,392 Z',
-          troops: [
-            { name: 'Samouraï moderne', art: 'infantry_blue', atk: 19, def: 17, hp: 92 },
-            { name: 'Ninja cybernétique', art: 'heli', atk: 31, def: 22, hp: 122 },
-            { name: 'Artillerie Type-99', art: 'artillery', atk: 48, def: 29, hp: 152 },
-            { name: 'Char Type-10', art: 'tank', atk: 73, def: 63, hp: 274 },
-            { name: 'Mecha Shogun', art: 'mecha', atk: 116, def: 94, hp: 430 },
-            { name: 'Cuirassé Yamato', art: 'carrier', atk: 166, def: 145, hp: 660 }
-          ]
-        },
-        {
-          id: 'KR', name: 'Corée du Sud', region: 'Asie de l’Est', biome: 'tempere', dev: 4,
-          maxMines: 280000, maxSoldiers: 700000, cx: 1236, cy: 354,
-          d: 'M1224,334 L1250,334 L1248,374 L1224,374 Z',
-          troops: [
-            { name: 'Tigre Blanc', art: 'infantry_blue', atk: 19, def: 17, hp: 92 },
-            { name: 'Commando Taekwondo', art: 'heli', atk: 30, def: 22, hp: 122 },
-            { name: 'Obusier K9 Thunder', art: 'artillery', atk: 49, def: 30, hp: 154 },
-            { name: 'Char Panthère Noire', art: 'tank', atk: 74, def: 64, hp: 278 },
-            { name: 'Chasseur Boramae', art: 'jet', atk: 112, def: 90, hp: 414 },
-            { name: 'Exosquelette Séoul', art: 'mecha', atk: 164, def: 144, hp: 655 }
-          ]
-        },
-        {
-          id: 'TH', name: 'Thaïlande', region: 'Asie du Sud-Est', biome: 'tropical', dev: 2,
-          maxMines: 260000, maxSoldiers: 650000, cx: 1086, cy: 486,
-          d: 'M1066,456 L1106,456 L1104,518 L1068,516 Z',
-          troops: [
-            { name: 'Combattant Muay-Thaï', art: 'infantry_gold', atk: 18, def: 16, hp: 90 },
-            { name: 'Éclaireur du Mékong', art: 'heli', atk: 28, def: 21, hp: 118 },
-            { name: 'Batterie Siam', art: 'artillery', atk: 44, def: 28, hp: 146 },
-            { name: 'Char Oplot-T', art: 'tank', atk: 66, def: 55, hp: 248 },
-            { name: 'Garuda Céleste', art: 'jet', atk: 101, def: 82, hp: 382 },
-            { name: 'Temple d’Acier', art: 'mecha', atk: 150, def: 132, hp: 598 }
-          ]
-        },
-        {
-          id: 'VN', name: 'Viêt Nam', region: 'Asie du Sud-Est', biome: 'tropical', dev: 2,
-          maxMines: 260000, maxSoldiers: 650000, cx: 1126, cy: 492,
-          d: 'M1110,456 L1142,462 L1140,528 L1112,524 Z',
-          troops: [
-            { name: 'Éclaireur Bambou', art: 'infantry_green', atk: 18, def: 16, hp: 90 },
-            { name: 'Sapeur des tunnels', art: 'infantry_gold', atk: 28, def: 22, hp: 120 },
-            { name: 'Batterie Dragon Rouge', art: 'artillery', atk: 44, def: 28, hp: 146 },
-            { name: 'Char T-90S', art: 'tank', atk: 67, def: 56, hp: 250 },
-            { name: 'Faucon de la Baie', art: 'jet', atk: 102, def: 83, hp: 384 },
-            { name: 'Dragon d’Halong', art: 'carrier', atk: 151, def: 133, hp: 600 }
-          ]
-        },
-        {
-          id: 'ID', name: 'Indonésie', region: 'Asie du Sud-Est', biome: 'tropical', dev: 2,
-          maxMines: 400000, maxSoldiers: 1000000, cx: 1146, cy: 572,
-          d: 'M1076,554 L1218,556 L1214,592 L1078,590 Z',
-          troops: [
-            { name: 'Fusilier marin', art: 'infantry_red', atk: 18, def: 16, hp: 90 },
-            { name: 'Commando Komodo', art: 'heli', atk: 28, def: 21, hp: 118 },
-            { name: 'Batterie Krakatoa', art: 'artillery', atk: 45, def: 28, hp: 148 },
-            { name: 'Char Harimau', art: 'tank', atk: 67, def: 56, hp: 250 },
-            { name: 'Aigle de Java', art: 'jet', atk: 102, def: 83, hp: 384 },
-            { name: 'Flotte Archipel', art: 'carrier', atk: 152, def: 134, hp: 605 }
-          ]
-        },
-        {
-          id: 'AU', name: 'Australie', region: 'Océanie', biome: 'aride', dev: 3,
-          maxMines: 620000, maxSoldiers: 1550000, cx: 1218, cy: 674,
-          d: 'M1134,622 L1298,622 L1306,722 L1144,724 Z',
-          troops: [
-            { name: 'Ranger de l’Outback', art: 'infantry_gold', atk: 18, def: 16, hp: 90 },
-            { name: 'Éclaireur Kangourou', art: 'cavalry', atk: 28, def: 21, hp: 118 },
-            { name: 'Artillerie du Désert', art: 'artillery', atk: 45, def: 28, hp: 148 },
-            { name: 'Blindé Bushmaster', art: 'tank', atk: 68, def: 57, hp: 252 },
-            { name: 'Faucon du Pacifique', art: 'jet', atk: 104, def: 84, hp: 390 },
-            { name: 'Croiseur Southern Cross', art: 'carrier', atk: 154, def: 136, hp: 615 }
-          ]
-        }
-      ];
-
-      // =========================================================================
-      // 4. DRAPEAUX VECTORIELS & ILLUSTRATIONS SVG DES TROUPES
-      // =========================================================================
-      function getFlagSvg(id, cls) {
-        var c = cls || 'flag-svg-sm';
-        var inner = '<rect width="60" height="40" fill="#1e293b"/><circle cx="30" cy="20" r="10" fill="#f59e0b"/>';
-        switch (id) {
-          case 'GL':
-            inner = '<rect width="60" height="20" fill="#ffffff"/><rect y="20" width="60" height="20" fill="#d00c33"/><path d="M12,20 A12,12 0 0,1 36,20 Z" fill="#d00c33"/><path d="M12,20 A12,12 0 0,0 36,20 Z" fill="#ffffff"/>';
-            break;
-          case 'CA':
-            inner = '<rect width="15" height="40" fill="#d80621"/><rect x="15" width="30" height="40" fill="#ffffff"/><rect x="45" width="15" height="40" fill="#d80621"/><polygon points="30,10 33,18 40,18 34,23 36,30 30,26 24,30 26,23 20,18 27,18" fill="#d80621"/>';
-            break;
-          case 'US':
-            inner = '<rect width="60" height="40" fill="#b22234"/><rect y="6" width="60" height="5" fill="#fff"/><rect y="16" width="60" height="5" fill="#fff"/><rect y="26" width="60" height="5" fill="#fff"/><rect y="35" width="60" height="5" fill="#fff"/><rect width="26" height="22" fill="#3c3b6e"/>';
-            break;
-          case 'MX':
-            inner = '<rect width="20" height="40" fill="#006847"/><rect x="20" width="20" height="40" fill="#ffffff"/><rect x="40" width="20" height="40" fill="#ce1126"/><circle cx="30" cy="20" r="4" fill="#8b5a2b"/>';
-            break;
-          case 'CO':
-            inner = '<rect width="60" height="20" fill="#fcd116"/><rect y="20" width="60" height="10" fill="#003893"/><rect y="30" width="60" height="10" fill="#ce1126"/>';
-            break;
-          case 'PE':
-            inner = '<rect width="20" height="40" fill="#d91023"/><rect x="20" width="20" height="40" fill="#ffffff"/><rect x="40" width="20" height="40" fill="#d91023"/>';
-            break;
-          case 'BR':
-            inner = '<rect width="60" height="40" fill="#009c3b"/><polygon points="30,5 54,20 30,35 6,20" fill="#ffdf00"/><circle cx="30" cy="20" r="8" fill="#002776"/>';
-            break;
-          case 'CL':
-            inner = '<rect width="60" height="20" fill="#ffffff"/><rect y="20" width="60" height="20" fill="#d52b1e"/><rect width="20" height="20" fill="#0039a6"/><circle cx="10" cy="10" r="4" fill="#ffffff"/>';
-            break;
-          case 'AR':
-            inner = '<rect width="60" height="13" fill="#74acdf"/><rect y="13" width="60" height="14" fill="#ffffff"/><rect y="27" width="60" height="13" fill="#74acdf"/><circle cx="30" cy="20" r="4" fill="#f6b40e"/>';
-            break;
-          case 'IS':
-            inner = '<rect width="60" height="40" fill="#02529c"/><rect x="16" width="8" height="40" fill="#fff"/><rect y="16" width="60" height="8" fill="#fff"/><rect x="18" width="4" height="40" fill="#dc1e35"/><rect y="18" width="60" height="4" fill="#dc1e35"/>';
-            break;
-          case 'GB':
-            inner = '<rect width="60" height="40" fill="#012169"/><path d="M0,0 L60,40 M60,0 L0,40" stroke="#fff" stroke-width="6"/><rect x="25" width="10" height="40" fill="#fff"/><rect y="15" width="60" height="10" fill="#fff"/><rect x="27" width="6" height="40" fill="#c8102e"/><rect y="17" width="60" height="6" fill="#c8102e"/>';
-            break;
-          case 'FR':
-            inner = '<rect width="20" height="40" fill="#002395"/><rect x="20" width="20" height="40" fill="#ffffff"/><rect x="40" width="20" height="40" fill="#ed2939"/>';
-            break;
-          case 'ES':
-            inner = '<rect width="60" height="10" fill="#aa151b"/><rect y="10" width="60" height="20" fill="#f1bf00"/><rect y="30" width="60" height="10" fill="#aa151b"/>';
-            break;
-          case 'DE':
-            inner = '<rect width="60" height="13" fill="#000000"/><rect y="13" width="60" height="14" fill="#dd0000"/><rect y="27" width="60" height="13" fill="#ffce00"/>';
-            break;
-          case 'IT':
-            inner = '<rect width="20" height="40" fill="#009246"/><rect x="20" width="20" height="40" fill="#ffffff"/><rect x="40" width="20" height="40" fill="#ce2b37"/>';
-            break;
-          case 'NO':
-            inner = '<rect width="60" height="40" fill="#ba0c2f"/><rect x="16" width="8" height="40" fill="#fff"/><rect y="16" width="60" height="8" fill="#fff"/><rect x="18" width="4" height="40" fill="#00205b"/><rect y="18" width="60" height="4" fill="#00205b"/>';
-            break;
-          case 'SE':
-            inner = '<rect width="60" height="40" fill="#006aa7"/><rect x="18" width="7" height="40" fill="#fecc02"/><rect y="16" width="60" height="7" fill="#fecc02"/>';
-            break;
-          case 'PL':
-            inner = '<rect width="60" height="20" fill="#ffffff"/><rect y="20" width="60" height="20" fill="#dc143c"/>';
-            break;
-          case 'UA':
-            inner = '<rect width="60" height="20" fill="#0057b7"/><rect y="20" width="60" height="20" fill="#ffd700"/>';
-            break;
-          case 'RU':
-            inner = '<rect width="60" height="13" fill="#ffffff"/><rect y="13" width="60" height="14" fill="#0039a6"/><rect y="27" width="60" height="13" fill="#d52b1e"/>';
-            break;
-          case 'TR':
-            inner = '<rect width="60" height="40" fill="#e30a17"/><circle cx="24" cy="20" r="9" fill="#ffffff"/><circle cx="27" cy="20" r="7" fill="#e30a17"/><polygon points="36,20 41,22 39,17 42,14 37,15" fill="#ffffff"/>';
-            break;
-          case 'SA':
-            inner = '<rect width="60" height="40" fill="#006c35"/><rect x="14" y="25" width="32" height="3" fill="#ffffff"/><rect x="18" y="14" width="24" height="6" rx="2" fill="#ffffff"/>';
-            break;
-          case 'MA':
-            inner = '<rect width="60" height="40" fill="#c1272d"/><polygon points="30,11 33,20 42,20 35,25 37,33 30,28 23,33 25,25 18,20 27,20" fill="none" stroke="#006233" stroke-width="2"/>';
-            break;
-          case 'EG':
-            inner = '<rect width="60" height="13" fill="#ce1126"/><rect y="13" width="60" height="14" fill="#ffffff"/><rect y="27" width="60" height="13" fill="#000000"/><circle cx="30" cy="20" r="3.5" fill="#c09300"/>';
-            break;
-          case 'NG':
-            inner = '<rect width="20" height="40" fill="#008751"/><rect x="20" width="20" height="40" fill="#ffffff"/><rect x="40" width="20" height="40" fill="#008751"/>';
-            break;
-          case 'ZA':
-            inner = '<rect width="60" height="20" fill="#e03c31"/><rect y="20" width="60" height="20" fill="#001489"/><polygon points="0,0 26,20 0,40" fill="#007749"/><rect x="22" y="17" width="38" height="6" fill="#007749"/>';
-            break;
-          case 'MG':
-            inner = '<rect width="20" height="40" fill="#ffffff"/><rect x="20" width="40" height="20" fill="#fc3d32"/><rect x="20" y="20" width="40" height="20" fill="#007e3a"/>';
-            break;
-          case 'KZ':
-            inner = '<rect width="60" height="40" fill="#00afca"/><circle cx="30" cy="20" r="8" fill="#fec50c"/>';
-            break;
-          case 'IN':
-            inner = '<rect width="60" height="13" fill="#ff9933"/><rect y="13" width="60" height="14" fill="#ffffff"/><rect y="27" width="60" height="13" fill="#138808"/><circle cx="30" cy="20" r="4" fill="#000080"/>';
-            break;
-          case 'CN':
-            inner = '<rect width="60" height="40" fill="#de2910"/><polygon points="12,8 14,14 20,14 15,17 17,22 12,19 7,22 9,17 4,14 10,14" fill="#ffde00"/>';
-            break;
-          case 'JP':
-            inner = '<rect width="60" height="40" fill="#ffffff"/><circle cx="30" cy="20" r="10" fill="#bc002d"/>';
-            break;
-          case 'KR':
-            inner = '<rect width="60" height="40" fill="#ffffff"/><path d="M21,20 A9,9 0 0,1 39,20 Z" fill="#cd2e3a"/><path d="M21,20 A9,9 0 0,0 39,20 Z" fill="#0047a0"/>';
-            break;
-          case 'TH':
-            inner = '<rect width="60" height="40" fill="#a51931"/><rect y="7" width="60" height="26" fill="#ffffff"/><rect y="13" width="60" height="14" fill="#2d2a4a"/>';
-            break;
-          case 'VN':
-            inner = '<rect width="60" height="40" fill="#da251d"/><polygon points="30,10 33,18 41,18 35,23 37,31 30,26 23,31 25,23 19,18 27,18" fill="#ffff00"/>';
-            break;
-          case 'ID':
-            inner = '<rect width="60" height="20" fill="#ce1126"/><rect y="20" width="60" height="20" fill="#ffffff"/>';
-            break;
-          case 'AU':
-            inner = '<rect width="60" height="40" fill="#00008b"/><rect width="26" height="20" fill="#012169"/><rect x="11" width="4" height="20" fill="#fff"/><rect y="8" width="26" height="4" fill="#fff"/><circle cx="44" cy="14" r="3" fill="#fff"/><circle cx="44" cy="28" r="3" fill="#fff"/>';
-            break;
-        }
-        return '<svg class="' + c + '" viewBox="0 0 60 40">' + inner + '</svg>';
-      }
-
-      function getTroopSvg(art) {
-        switch (art) {
-          case 'gl_warrior':
-            return '<svg viewBox="0 0 64 64" width="56" height="56"><circle cx="30" cy="18" r="9" fill="#fed7aa" stroke="#0f172a" stroke-width="2"/><path d="M18,22 Q30,8 42,22" fill="#f8fafc" stroke="#0f172a" stroke-width="2"/><rect x="19" y="27" width="22" height="25" rx="6" fill="#0284c7" stroke="#0f172a" stroke-width="2"/><rect x="27" y="27" width="6" height="25" fill="#f8fafc"/><line x1="48" y1="12" x2="48" y2="54" stroke="#78350f" stroke-width="3.5"/><path d="M48,14 L58,10 L58,24 L48,20 Z" fill="#38bdf8" stroke="#0f172a" stroke-width="1.8"/></svg>';
-          case 'gl_harpoon':
-            return '<svg viewBox="0 0 64 64" width="56" height="56"><circle cx="28" cy="18" r="9" fill="#fed7aa" stroke="#0f172a" stroke-width="2"/><path d="M18,16 L38,16 L34,9 L22,9 Z" fill="#e2e8f0" stroke="#0f172a" stroke-width="2"/><rect x="18" y="27" width="20" height="25" rx="6" fill="#1d4ed8" stroke="#0f172a" stroke-width="2"/><line x1="10" y1="46" x2="54" y2="14" stroke="#78350f" stroke-width="3.5"/><polygon points="56,12 46,13 51,21" fill="#94a3b8" stroke="#0f172a" stroke-width="1.8"/></svg>';
-          case 'gl_penguin':
-            return '<svg viewBox="0 0 64 64" width="56" height="56"><ellipse cx="26" cy="36" rx="13" ry="18" fill="#0f172a"/><ellipse cx="26" cy="38" rx="8" ry="13" fill="#ffffff"/><circle cx="26" cy="18" r="9" fill="#0f172a"/><circle cx="23" cy="16" r="2" fill="#ffffff"/><polygon points="26,18 35,20 26,22" fill="#f59e0b"/><circle cx="46" cy="36" r="10" fill="#1e293b" stroke="#0f172a" stroke-width="2"/><path d="M46,26 Q50,18 55,19" fill="none" stroke="#d97706" stroke-width="2.5"/><circle cx="56" cy="19" r="3" fill="#ef4444"/></svg>';
-          case 'gl_bear':
-            return '<svg viewBox="0 0 64 64" width="56" height="56"><ellipse cx="32" cy="38" rx="22" ry="13" fill="#f8fafc" stroke="#0f172a" stroke-width="2"/><circle cx="50" cy="28" r="9" fill="#f8fafc" stroke="#0f172a" stroke-width="2"/><circle cx="47" cy="21" r="3" fill="#f8fafc" stroke="#0f172a" stroke-width="1.8"/><circle cx="53" cy="26" r="1.8" fill="#0f172a"/><path d="M22,27 L40,27 L38,42 L24,42 Z" fill="#0284c7" stroke="#0f172a" stroke-width="2"/><rect x="16" y="47" width="6" height="9" rx="2" fill="#f8fafc" stroke="#0f172a" stroke-width="2"/><rect x="40" y="47" width="6" height="9" rx="2" fill="#f8fafc" stroke="#0f172a" stroke-width="2"/></svg>';
-          case 'gl_icebreaker':
-            return '<svg viewBox="0 0 64 64" width="56" height="56"><polygon points="8,42 54,42 46,54 14,54" fill="#0284c7" stroke="#0f172a" stroke-width="2"/><rect x="20" y="26" width="22" height="16" rx="3" fill="#f8fafc" stroke="#0f172a" stroke-width="2"/><rect x="26" y="16" width="8" height="10" fill="#ef4444" stroke="#0f172a" stroke-width="2"/></svg>';
-          case 'gl_citadel':
-            return '<svg viewBox="0 0 64 64" width="56" height="56"><polygon points="12,52 22,16 32,26 42,14 52,52" fill="#bae6fd" stroke="#0f172a" stroke-width="2"/><rect x="24" y="34" width="16" height="18" fill="#0369a1" stroke="#0f172a" stroke-width="2"/></svg>';
-          case 'infantry_red':
-          case 'infantry_blue':
-          case 'infantry_green':
-          case 'infantry_gold':
-            var suit = art === 'infantry_red' ? '#dc2626' : (art === 'infantry_blue' ? '#2563eb' : (art === 'infantry_gold' ? '#d97706' : '#16a34a'));
-            return '<svg viewBox="0 0 64 64" width="56" height="56"><circle cx="30" cy="18" r="8" fill="#fed7aa" stroke="#0f172a" stroke-width="2"/><path d="M21,16 Q30,8 39,16 Z" fill="#334155" stroke="#0f172a" stroke-width="2"/><rect x="20" y="26" width="20" height="24" rx="5" fill="' + suit + '" stroke="#0f172a" stroke-width="2"/><rect x="34" y="31" width="20" height="5" rx="2" fill="#1e293b"/></svg>';
-          case 'cavalry':
-            return '<svg viewBox="0 0 64 64" width="56" height="56"><ellipse cx="32" cy="40" rx="19" ry="10" fill="#92400e" stroke="#0f172a" stroke-width="2"/><circle cx="47" cy="28" r="7" fill="#92400e" stroke="#0f172a" stroke-width="2"/><rect x="25" y="21" width="12" height="14" rx="4" fill="#2563eb" stroke="#0f172a" stroke-width="2"/><line x1="12" y1="30" x2="54" y2="14" stroke="#f59e0b" stroke-width="3"/></svg>';
-          case 'artillery':
-            return '<svg viewBox="0 0 64 64" width="56" height="56"><line x1="16" y1="42" x2="52" y2="22" stroke="#334155" stroke-width="7" stroke-linecap="round"/><circle cx="24" cy="44" r="10" fill="#475569" stroke="#0f172a" stroke-width="2.5"/><circle cx="24" cy="44" r="4" fill="#cbd5e1"/></svg>';
-          case 'tank':
-            return '<svg viewBox="0 0 64 64" width="56" height="56"><rect x="10" y="38" width="44" height="13" rx="6" fill="#334155" stroke="#0f172a" stroke-width="2"/><rect x="16" y="28" width="32" height="11" rx="4" fill="#15803d" stroke="#0f172a" stroke-width="2"/><rect x="22" y="20" width="18" height="9" rx="3" fill="#166534" stroke="#0f172a" stroke-width="2"/><line x1="40" y1="24" x2="58" y2="24" stroke="#0f172a" stroke-width="4"/></svg>';
-          case 'heli':
-            return '<svg viewBox="0 0 64 64" width="56" height="56"><line x1="10" y1="18" x2="54" y2="18" stroke="#0f172a" stroke-width="3.5"/><line x1="32" y1="18" x2="32" y2="26" stroke="#0f172a" stroke-width="3"/><ellipse cx="32" cy="34" rx="16" ry="9" fill="#0284c7" stroke="#0f172a" stroke-width="2"/><line x1="8" y1="34" x2="18" y2="34" stroke="#0f172a" stroke-width="4"/></svg>';
-          case 'jet':
-            return '<svg viewBox="0 0 64 64" width="56" height="56"><polygon points="32,8 56,44 36,40 32,54 28,40 8,44" fill="#3b82f6" stroke="#0f172a" stroke-width="2"/><polygon points="32,16 36,30 28,30" fill="#e0f2fe"/></svg>';
-          case 'mecha':
-            return '<svg viewBox="0 0 64 64" width="56" height="56"><rect x="20" y="18" width="24" height="22" rx="4" fill="#7c3aed" stroke="#0f172a" stroke-width="2"/><rect x="25" y="10" width="14" height="8" rx="2" fill="#c4b5fd" stroke="#0f172a" stroke-width="2"/><rect x="12" y="20" width="6" height="18" rx="2" fill="#4c1d95"/><rect x="46" y="20" width="6" height="18" rx="2" fill="#4c1d95"/><rect x="22" y="40" width="7" height="15" fill="#1e293b"/><rect x="35" y="40" width="7" height="15" fill="#1e293b"/></svg>';
-          default:
-            return '<svg viewBox="0 0 64 64" width="56" height="56"><polygon points="8,42 56,42 48,54 14,54" fill="#1e293b" stroke="#0f172a" stroke-width="2"/><rect x="18" y="30" width="24" height="12" fill="#64748b" stroke="#0f172a" stroke-width="2"/><rect x="26" y="20" width="10" height="10" fill="#f59e0b" stroke="#0f172a" stroke-width="2"/></svg>';
-        }
-      }
-
-      function getGeniusSvg() {
-        return '<svg viewBox="0 0 64 64" width="54" height="54"><circle cx="32" cy="24" r="11" fill="#fed7aa" stroke="#0f172a" stroke-width="2"/><path d="M18,22 Q32,6 46,22 Z" fill="#6d28d9" stroke="#0f172a" stroke-width="2"/><circle cx="28" cy="23" r="3" fill="none" stroke="#0f172a" stroke-width="1.8"/><circle cx="36" cy="23" r="3" fill="none" stroke="#0f172a" stroke-width="1.8"/><path d="M20,36 L44,36 L48,56 L16,56 Z" fill="#7c3aed" stroke="#0f172a" stroke-width="2"/><circle cx="50" cy="16" r="5" fill="#facc15" stroke="#0f172a" stroke-width="1.5"/></svg>';
-      }
-
-      // =========================================================================
-      // 5. UTILITAIRES MÉTIER, DISTANCE RÉELLE & CALCULS
-      // =========================================================================
-      function formatFr(n) {
-        var val = Math.floor(Number(n) || 0);
-        return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-      }
-
-      function formatDuration(sec) {
-        var s = Math.max(0, Math.ceil(sec));
-        var d = Math.floor(s / 86400);
-        var h = Math.floor((s % 86400) / 3600);
-        var m = Math.floor((s % 3600) / 60);
-        var r = s % 60;
-        if (d > 0) return d + 'j ' + (h < 10 ? '0' : '') + h + 'h ' + (m < 10 ? '0' : '') + m + 'm';
-        if (h > 0) return h + 'h ' + (m < 10 ? '0' : '') + m + 'm ' + (r < 10 ? '0' : '') + r + 's';
-        return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r;
-      }
-
-      function getCountryById(id) {
-        for (var i = 0; i < COUNTRIES.length; i++) {
-          if (COUNTRIES[i].id === id) return COUNTRIES[i];
-        }
-        return null;
-      }
-
-      function calcFarmsForSoldiers(maxSoldiers) {
-        return Math.ceil(maxSoldiers / 2.5);
-      }
-
-      function getAllTroopsForCountry(country) {
-        var list = [];
-        for (var i = 0; i < country.troops.length; i++) {
-          var t = country.troops[i];
-          var tier = TROOP_TIERS[i] || TROOP_TIERS[TROOP_TIERS.length - 1];
-          list.push({
-            id: country.id + '_t' + i,
-            index: i,
-            name: t.name,
-            art: t.art,
-            cost: tier.cost,
-            atk: t.atk,
-            def: t.def,
-            hp: t.hp
-          });
-        }
-        return list;
-      }
-
-      function getUnlockedTroopCount(devLevel) {
-        var info = DEV_LEVELS[devLevel] || DEV_LEVELS[3];
-        return info.count;
-      }
-
-      function getTroopKnowledgeRequirement(unlockedCount, troopIndex) {
-        var reqPair = LAST_TWO_KNOWLEDGE_REQ[unlockedCount] || [150, 450];
-        if (troopIndex === unlockedCount - 2) return reqPair[0];
-        if (troopIndex === unlockedCount - 1) return reqPair[1];
-        return 0;
-      }
-
-      // Calcul du temps de marche militaire en jours/heures réels selon la distance sur la carte
-      function calcMilitaryTravelSeconds(fromCountry, toCountry) {
-        if (!fromCountry || !toCountry) return 10800;
-        var dx = toCountry.cx - fromCountry.cx;
-        var dy = toCountry.cy - fromCountry.cy;
-        var dist = Math.sqrt(dx * dx + dy * dy);
-        // Distance minimale ~50px (ex. France -> Espagne = ~3h = 10 800s), max ~1250px (= ~3 jours = 259 200s)
-        var sec = Math.round(7200 + dist * 200);
-        return Math.max(10800, Math.min(259200, sec));
-      }
-
-      // Coût colossal d'annexion d'un pays supplémentaire
-      function calcAnnexationCost(targetCountry, currentOwnedCount) {
-        var dev = targetCountry ? (targetCountry.dev || 2) : 2;
-        var empireScale = Math.pow(1.8, Math.max(0, currentOwnedCount - 1));
-        return Math.round(500000000 * dev * empireScale);
-      }
-
-      // =========================================================================
-      // 6. ÉTAT DU JEU & SAUVEGARDE AUTO CLOUD (PSEUDO + PIN 4 CHIFFRES)
-      // =========================================================================
-      var state = {
-        activeTab: 'map',
-        selectedId: null,
-        ownedIds: [],
-        activeOwnedId: null,
-        lastSavedAt: Date.now(),
-        countryData: {},
-        neutralDefense: {},
-        campaigns: [],
-        cloud: {
-          username: '',
-          pin: '',
-          connected: false,
-          authMode: 'login'
-        },
-        multi: {
-          open: false,
-          connected: false,
-          roomCode: '',
-          playerId: 'p_' + Math.random().toString(36).substring(2, 9),
-          players: {},
-          chat: [],
-          lastCombatReport: ''
-        }
-      };
-
-      function getActiveCountry() {
-        if (state.activeOwnedId && state.ownedIds.indexOf(state.activeOwnedId) !== -1) {
-          return getCountryById(state.activeOwnedId);
-        }
-        if (state.ownedIds.length > 0) {
-          state.activeOwnedId = state.ownedIds[0];
-          return getCountryById(state.activeOwnedId);
-        }
-        return null;
-      }
-
-      function isCountryOwned(id) {
-        return state.ownedIds.indexOf(id) !== -1;
-      }
-
-      function ensureCountryState(country) {
-        if (!state.countryData[country.id]) {
-          var troopsMap = {};
-          var allTroops = getAllTroopsForCountry(country);
-          if (allTroops.length > 0) {
-            troopsMap[allTroops[0].id] = 1;
-          }
-          state.countryData[country.id] = {
-            gold: STARTING_GOLD,
-            mines: STARTING_MINES,
-            farms: STARTING_FARMS,
-            devLevel: country.dev,
-            knowledge: 0,
-            totalKnowledgeEarned: 0,
-            troops: troopsMap,
-            genius: {
-              activeMission: null,
-              logs: ['Ton Génie est prêt à explorer le monde pour acquérir des Connaissances.']
-            }
-          };
-        }
-        var cs = state.countryData[country.id];
-        if (typeof cs.devLevel !== 'number') cs.devLevel = country.dev;
-        if (typeof cs.knowledge !== 'number') cs.knowledge = 0;
-        if (!cs.genius) cs.genius = { activeMission: null, logs: [] };
-        return cs;
-      }
-
-      function getNeutralGarrison(country) {
-        if (!state.neutralDefense[country.id]) {
-          var baseSoldiers = country.dev * 1200;
-          var baseDef = country.dev * 35000;
-          state.neutralDefense[country.id] = {
-            soldiers: baseSoldiers,
-            maxSoldiers: baseSoldiers,
-            defense: baseDef,
-            treasury: country.dev * 450000
-          };
-        }
-        return state.neutralDefense[country.id];
-      }
-
-      function getTotalSoldiers(country) {
-        var cs = ensureCountryState(country);
-        var total = 0;
-        for (var k in cs.troops) {
-          if (Object.prototype.hasOwnProperty.call(cs.troops, k)) {
-            total += Number(cs.troops[k]) || 0;
-          }
-        }
-        return total;
-      }
-
-      function getEmpireTotals() {
-        var totalGold = 0;
-        var totalRate = 0;
-        var totalKnow = 0;
-        for (var i = 0; i < state.ownedIds.length; i++) {
-          var c = getCountryById(state.ownedIds[i]);
-          if (c) {
-            var cs = ensureCountryState(c);
-            totalGold += cs.gold;
-            totalRate += cs.mines * MINE_RATE;
-            totalKnow += cs.knowledge;
-          }
-        }
-        return { gold: totalGold, rate: totalRate, knowledge: totalKnow };
-      }
-
-      function buildSaveObject() {
-        return {
-          v: 10,
-          activeTab: state.activeTab,
-          selectedId: state.selectedId,
-          ownedIds: state.ownedIds,
-          activeOwnedId: state.activeOwnedId,
-          lastSavedAt: Date.now(),
-          countryData: state.countryData,
-          neutralDefense: state.neutralDefense,
-          campaigns: state.campaigns,
-          multi: {
-            roomCode: state.multi.roomCode,
-            connected: state.multi.connected,
-            playerId: state.multi.playerId
-          }
-        };
-      }
-
-      function applySaveObject(parsed) {
-        if (!parsed || typeof parsed !== 'object') return false;
-        var validOwned = [];
-        if (Array.isArray(parsed.ownedIds)) {
-          for (var i = 0; i < parsed.ownedIds.length; i++) {
-            if (getCountryById(parsed.ownedIds[i])) validOwned.push(parsed.ownedIds[i]);
-          }
-        } else if (parsed.ownedId && getCountryById(parsed.ownedId)) {
-          validOwned.push(parsed.ownedId);
-        }
-        state.ownedIds = validOwned;
-        state.activeOwnedId = (parsed.activeOwnedId && validOwned.indexOf(parsed.activeOwnedId) !== -1)
-          ? parsed.activeOwnedId
-          : (validOwned[0] || null);
-        state.selectedId = (parsed.selectedId && getCountryById(parsed.selectedId)) ? parsed.selectedId : state.activeOwnedId;
-        state.activeTab = (parsed.activeTab === 'country' && state.ownedIds.length > 0) ? 'country' : 'map';
-        state.lastSavedAt = typeof parsed.lastSavedAt === 'number' && !isNaN(parsed.lastSavedAt) ? parsed.lastSavedAt : Date.now();
-        state.countryData = parsed.countryData && typeof parsed.countryData === 'object' ? parsed.countryData : {};
-        state.neutralDefense = parsed.neutralDefense && typeof parsed.neutralDefense === 'object' ? parsed.neutralDefense : {};
-        state.campaigns = Array.isArray(parsed.campaigns) ? parsed.campaigns : [];
-        if (parsed.multi && typeof parsed.multi === 'object') {
-          state.multi.roomCode = parsed.multi.roomCode || '';
-          state.multi.connected = Boolean(parsed.multi.connected && parsed.multi.roomCode);
-          if (parsed.multi.playerId) state.multi.playerId = parsed.multi.playerId;
-        }
-        return true;
-      }
-
+// ... existing code ... -->
       function getCloudDocRef(username, pin) {
         if (!fbDb) return null;
         var cleanUser = (username || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
         var cleanPin = (pin || '').trim();
         if (!cleanUser || cleanPin.length !== 4) return null;
-        return doc(fbDb, 'artifacts', appId, 'public', 'data', 'player_saves', cleanUser + '_' + cleanPin);
+        return fbDb.collection('player_saves').doc(cleanUser + '_' + cleanPin);
+      }
+
+      function getRtdbProfileUrls(username, pin) {
+        var cleanUser = (username || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+        var cleanPin = (pin || '').trim();
+        if (!cleanUser || cleanPin.length !== 4) return [];
+        var key = cleanUser + '_' + cleanPin;
+        return [
+          'https://guerre-des-pays-default-rtdb.europe-west1.firebasedatabase.app/player_saves/' + key + '.json',
+          'https://guerre-des-pays-default-rtdb.firebaseio.com/player_saves/' + key + '.json'
+        ];
       }
 
       function pushCloudSave(showTime) {
@@ -2031,56 +1075,162 @@
           }));
         } catch (e) {}
 
-        if (fbDb && fbUser && state.cloud.connected && state.cloud.username && state.cloud.pin) {
+        if (state.cloud.connected && state.cloud.username && state.cloud.pin) {
+          var saveBody = {
+            username: state.cloud.username,
+            updatedAt: Date.now(),
+            payloadJson: JSON.stringify(payload)
+          };
+
+          // 1) Tentative Firestore
           var ref = getCloudDocRef(state.cloud.username, state.cloud.pin);
           if (ref) {
-            setDoc(ref, {
-              username: state.cloud.username,
-              updatedAt: Date.now(),
-              payloadJson: JSON.stringify(payload)
-            }).then(function () {
-              if (showTime) updateCloudHudStatus();
+            ref.set(saveBody).catch(function () {});
+          }
+
+          // 2) Tentative Realtime Database (SDK + REST Europe/US)
+          var urls = getRtdbProfileUrls(state.cloud.username, state.cloud.pin);
+          for (var i = 0; i < urls.length; i++) {
+            fetch(urls[i], {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(saveBody)
             }).catch(function () {});
           }
         }
         if (showTime) updateCloudHudStatus();
       }
 
+      function tryFetchRtdbProfile(urls, idx) {
+        if (idx >= urls.length) return Promise.resolve(null);
+        return fetch(urls[idx])
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (data) {
+            if (data && data.payloadJson) return data;
+            return tryFetchRtdbProfile(urls, idx + 1);
+          })
+          .catch(function () {
+            return tryFetchRtdbProfile(urls, idx + 1);
+          });
+      }
+
+      function tryPutRtdbProfile(urls, idx, bodyObj) {
+        if (idx >= urls.length) return Promise.resolve(false);
+        return fetch(urls[idx], {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyObj)
+        })
+          .then(function (r) {
+            if (r.ok) return true;
+            return tryPutRtdbProfile(urls, idx + 1, bodyObj);
+          })
+          .catch(function () {
+            return tryPutRtdbProfile(urls, idx + 1, bodyObj);
+          });
+      }
+
+      function applyLoadedProfileData(data, username, pin, silent) {
+        var parsed = JSON.parse(data.payloadJson);
+        applySaveObject(parsed);
+        state.cloud.username = username.trim();
+        state.cloud.pin = pin.trim();
+        state.cloud.connected = true;
+        processOfflineProgress();
+        updateNavigationUI();
+        refreshMapStyles();
+        renderRoutesOnMap();
+        renderCampaignsPanel();
+        if (state.multi.connected) connectToMultiplayerRoom(state.multi.roomCode);
+        if (state.activeTab === 'country' && state.ownedIds.length > 0) renderCountryView();
+        else renderMapCard();
+        updateCloudHudStatus();
+        if (!silent) pushCloudSave(true);
+      }
+
       function pullCloudSave(username, pin, silent) {
         return new Promise(function (resolve) {
+          var urls = getRtdbProfileUrls(username, pin);
           var ref = getCloudDocRef(username, pin);
-          if (!ref || !fbUser) {
-            resolve({ ok: false, reason: 'Connexion au serveur en cours, réessaie dans 2 secondes.' });
-            return;
-          }
-          getDoc(ref).then(function (snap) {
-            if (!snap.exists()) {
+
+          // Essai 1 : Realtime Database (Europe puis US)
+          tryFetchRtdbProfile(urls, 0).then(function (rtData) {
+            if (rtData && rtData.payloadJson) {
+              applyLoadedProfileData(rtData, username, pin, silent);
+              resolve({ ok: true });
+              return;
+            }
+
+            // Essai 2 : Firestore
+            if (ref) {
+              ref.get().then(function (snap) {
+                if (snap && snap.exists) {
+                  var fsData = snap.data();
+                  if (fsData && fsData.payloadJson) {
+                    applyLoadedProfileData(fsData, username, pin, silent);
+                    resolve({ ok: true });
+                    return;
+                  }
+                }
+                resolve({ ok: false, reason: 'Aucune partie trouvée pour ce Pseudo + PIN. Clique sur « Nouvelle partie » pour créer ce profil !' });
+              }).catch(function (err) {
+                resolve({ ok: false, reason: 'Base non accessible (' + (err && err.code ? err.code : 'vérifie les règles Firebase en mode test') + ').' });
+              });
+            } else {
               resolve({ ok: false, reason: 'Aucune partie trouvée pour ce Pseudo + PIN.' });
+            }
+          });
+        });
+      }
+
+      function registerCloudSave(username, pin) {
+        return new Promise(function (resolve) {
+          var urls = getRtdbProfileUrls(username, pin);
+          var ref = getCloudDocRef(username, pin);
+
+          tryFetchRtdbProfile(urls, 0).then(function (existingRt) {
+            if (existingRt && existingRt.payloadJson) {
+              resolve({ ok: false, reason: 'Ce Pseudo + PIN existe déjà ! Clique sur « Reprendre ma partie ».' });
               return;
             }
-            var data = snap.data();
-            if (!data || !data.payloadJson) {
-              resolve({ ok: false, reason: 'Sauvegarde vide.' });
-              return;
-            }
-            var parsed = JSON.parse(data.payloadJson);
-            applySaveObject(parsed);
+
             state.cloud.username = username.trim();
             state.cloud.pin = pin.trim();
             state.cloud.connected = true;
-            processOfflineProgress();
-            updateNavigationUI();
-            refreshMapStyles();
-            renderGeniusMarkerOnMap();
-            renderCampaignsPanel();
-            if (state.multi.connected) connectToMultiplayerRoom(state.multi.roomCode);
-            if (state.activeTab === 'country' && state.ownedIds.length > 0) renderCountryView();
-            else renderMapCard();
-            updateCloudHudStatus();
-            if (!silent) pushCloudSave(true);
-            resolve({ ok: true });
-          }).catch(function () {
-            resolve({ ok: false, reason: 'Erreur réseau lors du chargement.' });
+
+            var saveBody = {
+              username: state.cloud.username,
+              updatedAt: Date.now(),
+              payloadJson: JSON.stringify(buildSaveObject())
+            };
+
+            tryPutRtdbProfile(urls, 0, saveBody).then(function (rtOk) {
+              if (rtOk) {
+                pushCloudSave(true);
+                updateCloudHudStatus();
+                resolve({ ok: true });
+                return;
+              }
+              if (ref) {
+                ref.get().then(function (snap) {
+                  if (snap && snap.exists) {
+                    resolve({ ok: false, reason: 'Ce Pseudo + PIN existe déjà ! Clique sur « Reprendre ma partie ».' });
+                    return;
+                  }
+                  ref.set(saveBody).then(function () {
+                    pushCloudSave(true);
+                    updateCloudHudStatus();
+                    resolve({ ok: true });
+                  }).catch(function (err) {
+                    resolve({ ok: false, reason: 'Active Realtime Database ou Firestore en mode test dans Firebase (' + (err && err.code ? err.code : 'permission') + ').' });
+                  });
+                }).catch(function (err) {
+                  resolve({ ok: false, reason: 'Active Realtime Database ou Firestore en mode test dans Firebase (' + (err && err.code ? err.code : 'permission') + ').' });
+                });
+              } else {
+                resolve({ ok: false, reason: 'Impossible de joindre Firebase. Vérifie ta connexion.' });
+              }
+            });
           });
         });
       }
@@ -3035,83 +2185,170 @@
         if (roomUnsub) { try { roomUnsub(); } catch (e) {} roomUnsub = null; }
         if (chatUnsub) { try { chatUnsub(); } catch (e) {} chatUnsub = null; }
 
-        if (fbDb && fbUser) {
-          var playersCol = collection(fbDb, 'artifacts', appId, 'public', 'data', 'room_' + cleanCode + '_players');
-          roomUnsub = onSnapshot(playersCol, function (snap) {
-            var map = {};
-            snap.forEach(function (d) {
-              map[d.id] = d.data();
-            });
-            state.multi.players = map;
-            refreshMapStyles();
-            renderMapCard();
-            if (state.multi.open) renderMultiPanel();
-          }, function () {});
+        if (fbDb) {
+          try {
+            roomUnsub = fbDb.collection('rooms').doc(cleanCode).collection('players').onSnapshot(function (snap) {
+              var map = {};
+              snap.forEach(function (d) { map[d.id] = d.data(); });
+              state.multi.players = map;
+              refreshMapStyles();
+              renderMapCard();
+              if (state.multi.open) renderMultiPanel();
+            }, function () {});
 
-          var chatCol = collection(fbDb, 'artifacts', appId, 'public', 'data', 'room_' + cleanCode + '_chat');
-          chatUnsub = onSnapshot(chatCol, function (snap) {
-            var list = [];
-            snap.forEach(function (d) {
-              list.push(d.data());
-            });
-            list.sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
-            state.multi.chat = list.slice(-25);
-            if (state.multi.open) renderMultiPanel();
-          }, function () {});
-
-          syncMultiplayerPresence();
+            chatUnsub = fbDb.collection('rooms').doc(cleanCode).collection('chat').onSnapshot(function (snap) {
+              var list = [];
+              snap.forEach(function (d) { list.push(d.data()); });
+              list.sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
+              state.multi.chat = list.slice(-25);
+              if (state.multi.open) renderMultiPanel();
+            }, function () {});
+          } catch (e) {}
         }
+
+        syncMultiplayerPresence();
         renderMultiPanel();
       }
 
       function syncMultiplayerPresence() {
-        if (!state.multi.connected || !state.multi.roomCode || !fbDb || !fbUser) return;
+        if (!state.multi.connected || !state.multi.roomCode) return;
         var cleanCode = state.multi.roomCode;
-        var myDoc = doc(fbDb, 'artifacts', appId, 'public', 'data', 'room_' + cleanCode + '_players', state.multi.playerId);
-        setDoc(myDoc, buildLocalPlayerPayload()).catch(function () {});
+        var payload = buildLocalPlayerPayload();
 
-        var inboxDoc = doc(fbDb, 'artifacts', appId, 'public', 'data', 'room_' + cleanCode + '_inbox', state.multi.playerId);
-        getDoc(inboxDoc).then(function (snap) {
-          if (!snap.exists()) return;
-          var data = snap.data();
-          var events = Array.isArray(data.events) ? data.events : [];
-          if (events.length > 0 && state.ownedIds.length > 0) {
-            var activeC = getActiveCountry();
-            var cs = ensureCountryState(activeC);
-            for (var i = 0; i < events.length; i++) {
-              var ev = events[i];
-              if (ev.type === 'gift_gold') cs.gold += Number(ev.amount) || 0;
-              if (ev.type === 'genius_visit') {
-                cs.knowledge += Number(ev.bonus) || 15;
-                cs.totalKnowledgeEarned += Number(ev.bonus) || 15;
-              }
-              if (ev.type === 'under_attack') {
-                var loot = Math.min(Math.floor(cs.gold * 0.25), Number(ev.loot) || 0);
-                cs.gold = Math.max(0, cs.gold - loot);
-                applySoldierCasualties(activeC, ev.defenderLossRatio || 0.25);
+        // Synchronisation Firestore
+        if (fbDb) {
+          fbDb.collection('rooms').doc(cleanCode).collection('players').doc(state.multi.playerId).set(payload).catch(function () {});
+          var inboxDoc = fbDb.collection('rooms').doc(cleanCode).collection('inbox').doc(state.multi.playerId);
+          inboxDoc.get().then(function (snap) {
+            if (!snap || !snap.exists) return;
+            var data = snap.data();
+            var events = Array.isArray(data.events) ? data.events : [];
+            if (events.length > 0 && state.ownedIds.length > 0) {
+              applyIncomingRoomEvents(events);
+              inboxDoc.delete().catch(function () {});
+            }
+          }).catch(function () {});
+        }
+
+        // Synchronisation Realtime Database REST (fallback universel)
+        var rtBase = 'https://guerre-des-pays-default-rtdb.europe-west1.firebasedatabase.app/rooms/' + cleanCode;
+        fetch(rtBase + '/players/' + state.multi.playerId + '.json', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(function () {});
+
+        fetch(rtBase + '/players.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (allPlayers) {
+            if (allPlayers && typeof allPlayers === 'object') {
+              state.multi.players = allPlayers;
+              refreshMapStyles();
+              renderMapCard();
+              if (state.multi.open) renderMultiPanel();
+            }
+          }).catch(function () {});
+
+        fetch(rtBase + '/chat.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (allChat) {
+            if (allChat && typeof allChat === 'object') {
+              var list = Object.values(allChat);
+              list.sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
+              state.multi.chat = list.slice(-25);
+              if (state.multi.open) renderMultiPanel();
+            }
+          }).catch(function () {});
+
+        fetch(rtBase + '/inbox/' + state.multi.playerId + '.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (inboxObj) {
+            if (inboxObj && typeof inboxObj === 'object' && state.ownedIds.length > 0) {
+              var evList = Object.values(inboxObj);
+              if (evList.length > 0) {
+                applyIncomingRoomEvents(evList);
+                fetch(rtBase + '/inbox/' + state.multi.playerId + '.json', { method: 'DELETE' }).catch(function () {});
               }
             }
-            deleteDoc(inboxDoc).catch(function () {});
-            pushCloudSave(true);
-            updateHeaderHud();
+          }).catch(function () {});
+      }
+
+      function applyIncomingRoomEvents(events) {
+        var activeC = getActiveCountry();
+        if (!activeC) return;
+        var cs = ensureCountryState(activeC);
+        for (var i = 0; i < events.length; i++) {
+          var ev = events[i];
+          if (!ev) continue;
+          if (ev.type === 'gift_gold') cs.gold += Number(ev.amount) || 0;
+          if (ev.type === 'genius_visit') {
+            cs.knowledge += Number(ev.bonus) || 15;
+            cs.totalKnowledgeEarned += Number(ev.bonus) || 15;
           }
-        }).catch(function () {});
+          if (ev.type === 'under_attack') {
+            var loot = Math.min(Math.floor(cs.gold * 0.25), Number(ev.loot) || 0);
+            cs.gold = Math.max(0, cs.gold - loot);
+            applySoldierCasualties(activeC, ev.defenderLossRatio || 0.25);
+          }
+        }
+        pushCloudSave(true);
+        updateHeaderHud();
       }
 
       function sendRoomInboxAndChat(targetPlayerId, eventObj, chatText) {
-        if (!state.multi.connected || !state.multi.roomCode || !fbDb || !fbUser) return;
+        if (!state.multi.connected || !state.multi.roomCode) return;
         var cleanCode = state.multi.roomCode;
+        var rtBase = 'https://guerre-des-pays-default-rtdb.europe-west1.firebasedatabase.app/rooms/' + cleanCode;
+
         if (targetPlayerId && eventObj) {
-          var inboxDoc = doc(fbDb, 'artifacts', appId, 'public', 'data', 'room_' + cleanCode + '_inbox', targetPlayerId);
-          getDoc(inboxDoc).then(function (snap) {
-            var existing = snap.exists() && Array.isArray(snap.data().events) ? snap.data().events : [];
-            existing.push(eventObj);
-            setDoc(inboxDoc, { events: existing }).catch(function () {});
+          fetch(rtBase + '/inbox/' + targetPlayerId + '.json', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(eventObj)
           }).catch(function () {});
+
+          if (fbDb) {
+            var inboxDoc = fbDb.collection('rooms').doc(cleanCode).collection('inbox').doc(targetPlayerId);
+            inboxDoc.get().then(function (snap) {
+              var existing = snap && snap.exists && Array.isArray(snap.data().events) ? snap.data().events : [];
+              existing.push(eventObj);
+              inboxDoc.set({ events: existing }).catch(function () {});
+            }).catch(function () {});
+          }
         }
         if (chatText) {
-          var chatCol = collection(fbDb, 'artifacts', appId, 'public', 'data', 'room_' + cleanCode + '_chat');
-          addDoc(chatCol, { sender: 'Système', text: chatText, isEvent: true, ts: Date.now() }).catch(function () {});
+          var msg = { sender: 'Système', text: chatText, isEvent: true, ts: Date.now() };
+          fetch(rtBase + '/chat.json', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(msg)
+          }).catch(function () {});
+          if (fbDb) {
+            fbDb.collection('rooms').doc(cleanCode).collection('chat').add(msg).catch(function () {});
+          }
+        }
+      }
+
+      function sendChatMessage(text) {
+        var clean = (text || '').trim();
+        if (!clean || !state.multi.connected || !state.multi.roomCode) return;
+        var cleanCode = state.multi.roomCode;
+        var msg = {
+          sender: state.cloud.username || 'Commandant',
+          text: clean.slice(0, 180),
+          isEvent: false,
+          ts: Date.now()
+        };
+        fetch('https://guerre-des-pays-default-rtdb.europe-west1.firebasedatabase.app/rooms/' + cleanCode + '/chat.json', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(msg)
+        }).then(function () {
+          syncMultiplayerPresence();
+        }).catch(function () {});
+
+        if (fbDb) {
+          fbDb.collection('rooms').doc(cleanCode).collection('chat').add(msg).catch(function () {});
         }
       }
 
