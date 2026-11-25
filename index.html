@@ -1,2959 +1,1475 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-  <title>Carte des Pays</title>
-  <style>
-    :root {
-      --bg-page: #f4f6f9;
-      --surface: #ffffff;
-      --surface-soft: #f8fafc;
-      --ink: #0f172a;
-      --mute: #64748b;
-      --line: #e2e8f0;
-      --navy: #0f172a;
-      --navy-soft: #1e293b;
-      --accent: #f59e0b;
-      --accent-dark: #d97706;
-      --blue: #0284c7;
-      --green: #16a34a;
-      --purple: #7c3aed;
-      --red: #dc2626;
-      --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
-    }
-
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    html, body {
-      margin: 0;
-      padding: 0;
-      min-height: 100%;
-      background: var(--bg-page);
-      color: var(--ink);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
-      overflow-x: hidden;
-    }
-
-    /* EN-TÊTE & ONGLETS */
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 40;
-      background: var(--navy);
-      color: #ffffff;
-      border-bottom: 2px solid var(--accent);
-      padding: 8px 12px;
-    }
-
-    .topbar-inner {
-      max-width: 1180px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .tabs-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .tab-btn {
-      appearance: none;
-      border: 1.5px solid #334155;
-      background: var(--navy-soft);
-      color: #cbd5e1;
-      font-weight: 800;
-      font-size: 13px;
-      padding: 7px 13px;
-      border-radius: 999px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.15s ease;
-    }
-
-    .tab-btn.active {
-      background: var(--accent);
-      border-color: #fde68a;
-      color: #0f172a;
-      box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35);
-    }
-
-    .hud-right {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .hud-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 11px;
-      border-radius: 999px;
-      font-size: 12.5px;
-      font-weight: 800;
-      background: rgba(30, 41, 59, 0.95);
-      border: 1px solid #334155;
-      color: #f8fafc;
-    }
-
-    .hud-pill.gold {
-      border-color: #f59e0b;
-      color: #fde68a;
-    }
-
-    .hud-rate {
-      color: #4ade80;
-      font-size: 11.5px;
-    }
-
-    .hud-pill.know {
-      border-color: #a855f7;
-      color: #e9d5ff;
-    }
-
-    .hud-btn {
-      appearance: none;
-      border: 1px solid #475569;
-      background: var(--navy-soft);
-      color: #e2e8f0;
-      font-weight: 800;
-      font-size: 12px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .hud-btn:hover {
-      background: #334155;
-    }
-
-    .hud-btn.multi-active,
-    .hud-btn.cloud-active {
-      border-color: #4ade80;
-      background: rgba(22, 163, 74, 0.3);
-      color: #bbf7d0;
-    }
-
-    /* CONTENEUR PRINCIPAL */
-    .main-wrap {
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 12px;
-    }
-
-    /* ONGLET 1 : CARTE DU MONDE */
-    .map-stage {
-      position: relative;
-      width: 100%;
-      min-height: 440px;
-      height: 58vh;
-      max-height: 680px;
-      border-radius: 18px;
-      overflow: hidden;
-      background: #0d3b66;
-      border: 2px solid #1e3a5f;
-      box-shadow: var(--shadow);
-      touch-action: none;
-      user-select: none;
-    }
-
-    #worldMap {
-      display: block;
-      width: 100%;
-      height: 100%;
-      cursor: grab;
-    }
-
-    #worldMap:active {
-      cursor: grabbing;
-    }
-
-    .country-shape {
-      stroke: #0f172a;
-      stroke-width: 1.4;
-      stroke-linejoin: round;
-      cursor: pointer;
-      transition: filter 0.12s ease, stroke-width 0.12s ease;
-    }
-
-    .country-shape:hover {
-      filter: brightness(1.12);
-      stroke: #ffffff;
-      stroke-width: 2.2;
-    }
-
-    .country-shape.selected {
-      stroke: #facc15;
-      stroke-width: 3.2;
-      filter: brightness(1.16);
-    }
-
-    .country-shape.owned {
-      stroke: #22c55e;
-      stroke-width: 3.2;
-    }
-
-    .country-shape.enemy-owned {
-      stroke: #ef4444;
-      stroke-width: 2.8;
-    }
-
-    .country-shape.genius-target {
-      stroke: #c084fc;
-      stroke-width: 3.2;
-    }
-
-    .country-label {
-      font-size: 11px;
-      font-weight: 800;
-      fill: #ffffff;
-      text-anchor: middle;
-      paint-order: stroke;
-      stroke: #0f172a;
-      stroke-width: 2.8px;
-      pointer-events: none;
-    }
-
-    .owner-badge-text {
-      font-size: 9.5px;
-      font-weight: 800;
-      fill: #fde047;
-      text-anchor: middle;
-      paint-order: stroke;
-      stroke: #0f172a;
-      stroke-width: 2.4px;
-      pointer-events: none;
-    }
-
-    .map-controls {
-      position: absolute;
-      right: 12px;
-      bottom: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      z-index: 10;
-    }
-
-    .zoom-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      border: 1.5px solid #475569;
-      background: rgba(15, 23, 42, 0.92);
-      color: #ffffff;
-      font-size: 20px;
-      font-weight: 800;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-    }
-
-    .zoom-btn:active {
-      transform: scale(0.95);
-    }
-
-    /* CARTE DE SÉLECTION SOUS LE PLANISPHÈRE */
-    .bottom-card {
-      margin-top: 12px;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 16px;
-      box-shadow: var(--shadow);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-
-    .card-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex: 1;
-      min-width: 240px;
-    }
-
-    .flag-svg-sm {
-      width: 54px;
-      height: 36px;
-      border-radius: 8px;
-      border: 1px solid #cbd5e1;
-      flex-shrink: 0;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    }
-
-    .flag-svg-lg {
-      width: 72px;
-      height: 48px;
-      border-radius: 10px;
-      border: 1px solid #cbd5e1;
-      flex-shrink: 0;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-    }
-
-    .card-title {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 900;
-      color: var(--ink);
-    }
-
-    .card-sub {
-      margin: 3px 0 0;
-      font-size: 13px;
-      color: var(--mute);
-      line-height: 1.4;
-    }
-
-    .pills-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 8px;
-    }
-
-    .stat-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 12px;
-      font-weight: 800;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: #f1f5f9;
-      color: #334155;
-      border: 1px solid #e2e8f0;
-    }
-
-    .stat-pill.gold {
-      background: #fef3c7;
-      color: #92400e;
-      border-color: #fde68a;
-    }
-
-    .stat-pill.green {
-      background: #dcfce7;
-      color: #166534;
-      border-color: #bbf7d0;
-    }
-
-    .stat-pill.blue {
-      background: #e0f2fe;
-      color: #075985;
-      border-color: #bae6fd;
-    }
-
-    .stat-pill.purple {
-      background: #f3e8ff;
-      color: #6b21a8;
-      border-color: #e9d5ff;
-    }
-
-    .stat-pill.red {
-      background: #fee2e2;
-      color: #991b1b;
-      border-color: #fecaca;
-    }
-
-    .primary-btn {
-      appearance: none;
-      border: none;
-      background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
-      color: #0f172a;
-      font-weight: 900;
-      font-size: 14px;
-      padding: 12px 18px;
-      border-radius: 12px;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(217, 119, 6, 0.28);
-      transition: transform 0.1s ease, opacity 0.15s ease;
-    }
-
-    .primary-btn:active {
-      transform: scale(0.98);
-    }
-
-    .primary-btn:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-
-    .primary-btn.secondary {
-      background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.28);
-    }
-
-    .primary-btn.purple {
-      background: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(109, 40, 217, 0.25);
-    }
-
-    .primary-btn.danger {
-      background: linear-gradient(180deg, #dc2626 0%, #b91c1c 100%);
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.28);
-    }
-
-    .primary-btn.green {
-      background: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.28);
-    }
-
-    /* ONGLET 2 : PAGE DU PAYS CHOISI */
-    .country-panel {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 18px;
-      box-shadow: var(--shadow);
-      margin-bottom: 14px;
-    }
-
-    .country-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      padding-bottom: 14px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .country-title-block {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .country-title-block h1 {
-      margin: 0;
-      font-size: 22px;
-      font-weight: 900;
-    }
-
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .kpi-card {
-      background: var(--surface-soft);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px;
-    }
-
-    .kpi-label {
-      font-size: 12px;
-      font-weight: 800;
-      color: var(--mute);
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
-
-    .kpi-value {
-      font-size: 19px;
-      font-weight: 900;
-      margin-top: 4px;
-      color: var(--ink);
-    }
-
-    .kpi-sub {
-      font-size: 12px;
-      color: var(--mute);
-      margin-top: 3px;
-    }
-
-    .section-heading {
-      margin: 0 0 10px;
-      font-size: 17px;
-      font-weight: 900;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    /* DÉVELOPPEMENT NIVEAU 1 -> 5 */
-    .dev-upgrade-box {
-      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-      border: 1.5px solid #f59e0b;
-      border-radius: 16px;
-      padding: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .progress-bar-wrap {
-      width: 100%;
-      height: 10px;
-      background: #e2e8f0;
-      border-radius: 999px;
-      overflow: hidden;
-      margin-top: 6px;
-    }
-
-    .progress-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #7c3aed, #2563eb);
-      border-radius: 999px;
-      transition: width 0.25s ease;
-    }
-
-    /* INFRASTRUCTURES (MINES & FERMES) */
-    .infra-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 12px;
-    }
-
-    .infra-card {
-      background: var(--surface-soft);
-      border: 1px solid var(--line);
-      border-radius: 15px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .batch-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .batch-btn {
-      appearance: none;
-      border: 1px solid #cbd5e1;
-      background: #ffffff;
-      color: var(--ink);
-      font-weight: 800;
-      font-size: 12.5px;
-      padding: 8px 11px;
-      border-radius: 10px;
-      cursor: pointer;
-      flex: 1;
-      min-width: 64px;
-    }
-
-    .batch-btn:hover:not(:disabled) {
-      background: #f1f5f9;
-      border-color: #94a3b8;
-    }
-
-    .batch-btn:disabled {
-      opacity: 0.42;
-      cursor: not-allowed;
-    }
-
-    /* CABINET DU GÉNIE */
-    .genius-header {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      background: #faf5ff;
-      border: 1.5px solid #d8b4fe;
-      border-radius: 15px;
-      padding: 12px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
-
-    .missions-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
-      gap: 10px;
-    }
-
-    .mission-card {
-      background: var(--surface-soft);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .active-mission-banner {
-      background: #f3e8ff;
-      border: 1.5px solid #a855f7;
-      border-radius: 14px;
-      padding: 14px;
-      margin-bottom: 12px;
-    }
-
-    .genius-log {
-      margin-top: 10px;
-      background: #f8fafc;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 10px;
-      font-size: 12.5px;
-      color: #475569;
-    }
-
-    /* GRILLE DES TROUPES */
-    .troops-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(265px, 1fr));
-      gap: 12px;
-    }
-
-    .troop-card {
-      background: var(--surface-soft);
-      border: 1.5px solid var(--line);
-      border-radius: 16px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .troop-card.locked {
-      opacity: 0.72;
-      background: #f1f5f9;
-      border-style: dashed;
-    }
-
-    .troop-top {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .troop-art {
-      width: 66px;
-      height: 66px;
-      border-radius: 14px;
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      padding: 4px;
-    }
-
-    /* CAMPAGNES MILITAIRES & INVASIONS */
-    .campaigns-panel {
-      margin-top: 12px;
-      background: #fff1f2;
-      border: 1.5px solid #fda4af;
-      border-radius: 18px;
-      padding: 14px;
-      box-shadow: var(--shadow);
-    }
-
-    .campaign-item {
-      background: #ffffff;
-      border: 1px solid #fecdd3;
-      border-radius: 12px;
-      padding: 10px 12px;
-      margin-top: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    /* MULTIJOUEUR */
-    .multi-panel {
-      margin-top: 12px;
-      background: var(--surface);
-      border: 1.5px solid #38bdf8;
-      border-radius: 18px;
-      padding: 16px;
-      box-shadow: var(--shadow);
-    }
-
-    .multi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 12px;
-      margin-top: 10px;
-    }
-
-    .multi-box {
-      background: var(--surface-soft);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .multi-input {
-      width: 100%;
-      border: 1px solid #cbd5e1;
-      border-radius: 9px;
-      padding: 9px 11px;
-      font-size: 14px;
-      font-weight: 600;
-      background: #ffffff;
-      color: var(--ink);
-    }
-
-    .room-code-badge {
-      display: inline-flex;
-      align-items: center;
-      background: #0f172a;
-      color: #fde68a;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 16px;
-      font-weight: 900;
-      letter-spacing: 0.12em;
-      padding: 6px 12px;
-      border-radius: 10px;
-      border: 1.5px solid #f59e0b;
-    }
-
-    .player-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 7px 9px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      font-size: 12.5px;
-    }
-
-    .chat-feed {
-      height: 140px;
-      overflow-y: auto;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      font-size: 12.5px;
-    }
-
-    .chat-msg {
-      padding: 4px 7px;
-      border-radius: 7px;
-      background: #f1f5f9;
-    }
-
-    .chat-msg.event {
-      background: #fef3c7;
-      color: #78350f;
-      font-weight: 700;
-    }
-
-    .combat-preview-box {
-      margin-top: 10px;
-      background: #fef2f2;
-      border: 1.5px solid #fca5a5;
-      border-radius: 14px;
-      padding: 12px;
-      width: 100%;
-    }
-
-    /* FENÊTRE MODALE (PROFIL CLOUD PSEUDO+PIN & SAUVEGARDE) */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.72);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      z-index: 100;
-    }
-
-    .modal-backdrop.open {
-      display: flex;
-    }
-
-    .modal-card {
-      background: #ffffff;
-      border-radius: 20px;
-      max-width: 460px;
-      width: 100%;
-      padding: 20px;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
-    }
-
-    .modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-
-    .modal-close {
-      border: 1px solid #cbd5e1;
-      background: #f8fafc;
-      border-radius: 8px;
-      padding: 5px 10px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    .auth-tabs {
-      display: flex;
-      gap: 6px;
-      background: #f1f5f9;
-      padding: 4px;
-      border-radius: 12px;
-      margin-bottom: 14px;
-    }
-
-    .auth-tab {
-      flex: 1;
-      border: none;
-      background: transparent;
-      padding: 9px 10px;
-      border-radius: 9px;
-      font-weight: 800;
-      font-size: 13px;
-      color: var(--mute);
-      cursor: pointer;
-    }
-
-    .auth-tab.active {
-      background: #ffffff;
-      color: var(--ink);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    }
-
-    .offline-toast {
-      background: #dcfce7;
-      border: 1.5px solid #22c55e;
-      color: #14532d;
-      border-radius: 12px;
-      padding: 10px 14px;
-      margin-bottom: 12px;
-      font-size: 13px;
-      font-weight: 800;
-      display: none;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    @media (max-width: 600px) {
-      .map-stage {
-        min-height: 430px;
-        height: 55vh;
-      }
-      .country-title-block h1 {
-        font-size: 19px;
-      }
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Carte des Pays — Stratégie & Conquête</title>
+<style>
+  :root {
+    --bg: #f3f4f6;
+    --surface: #ffffff;
+    --surface-soft: #f8fafc;
+    --header: #0b1324;
+    --border: #e5e7eb;
+    --text: #0f172a;
+    --muted: #64748b;
+    --gold: #f59e0b;
+    --gold-bg: #fef3c7;
+    --gold-text: #92400e;
+    --green: #10b981;
+    --green-bg: #d1fae5;
+    --green-text: #065f46;
+    --blue: #2563eb;
+    --red: #ef4444;
+    --purple: #7c3aed;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow-x: hidden;
+  }
+  header {
+    background: var(--header); color: #fff;
+    padding: 10px 14px; border-bottom: 3px solid var(--gold);
+    position: sticky; top: 0; z-index: 30;
+    box-shadow: 0 4px 16px rgba(11,19,36,0.22);
+  }
+  .header-row {
+    max-width: 1360px; margin: 0 auto;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .top-group { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 13px; border-radius: 999px; font-size: 13px; font-weight: 800;
+    background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.18);
+    color: #f8fafc; cursor: pointer;
+  }
+  .pill.active-country { background: var(--gold); border-color: #fbbf24; color: #0f172a; }
+  .pill.gold-stat { background: rgba(245,158,11,0.14); border-color: var(--gold); color: #fff; }
+  .pill.know-stat { background: rgba(168,85,247,0.2); border-color: #c084fc; color: #f3e8ff; }
+  .pill.blue-btn { background: rgba(59,130,246,0.22); border-color: #60a5fa; color: #dbeafe; }
+  .pill.green-btn { background: rgba(16,185,129,0.22); border-color: #34d399; color: #d1fae5; }
+
+  .container {
+    max-width: 1360px; margin: 0 auto; padding: 12px;
+    display: grid; grid-template-columns: 1fr; gap: 14px;
+  }
+  @media (min-width: 980px) {
+    .container { grid-template-columns: 1.35fr 1fr; align-items: start; }
+  }
+
+  /* CARTE */
+  .map-card {
+    position: relative; width: 100%; height: 56vh; min-height: 360px; max-height: 650px;
+    background: radial-gradient(circle at 50% 45%, #134074 0%, #0b2545 72%, #071930 100%);
+    border-radius: 18px; border: 1px solid #cbd5e1;
+    overflow: hidden; box-shadow: 0 8px 24px rgba(15,23,42,0.12);
+    touch-action: none; user-select: none;
+  }
+  #world-svg { display: block; width: 100%; height: 100%; cursor: grab; }
+  #world-svg:active { cursor: grabbing; }
+  .country-shape {
+    fill: #4b7f52; stroke: #132a1c; stroke-width: 1.35;
+    transition: fill 0.15s ease, stroke 0.15s ease; cursor: pointer;
+  }
+  .country-shape:hover { fill: #63a36c; stroke: #ffffff; stroke-width: 2; }
+  .country-shape.mine { fill: #10b981; stroke: #ecfdf5; stroke-width: 2.3; }
+  .country-shape.selected { stroke: #f59e0b; stroke-width: 3.1; }
+  .country-shape.enemy { fill: #ef4444; stroke: #fee2e2; stroke-width: 2; }
+  .country-label {
+    fill: #ffffff; font-size: 9.5px; font-weight: 700; text-anchor: middle;
+    pointer-events: none; paint-order: stroke; stroke: #08182e; stroke-width: 2.8px;
+  }
+  .zoom-controls {
+    position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 6px; z-index: 10;
+  }
+  .zoom-btn {
+    width: 38px; height: 38px; border-radius: 11px; border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(11,19,36,0.9); color: #fff; font-size: 18px; font-weight: 800; cursor: pointer;
+  }
+  .map-banner {
+    position: absolute; left: 12px; top: 12px; right: 12px; pointer-events: none;
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; z-index: 10;
+  }
+  .banner-chip {
+    background: rgba(255,255,255,0.96); color: #0f172a; border: 1px solid #cbd5e1;
+    padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.16);
+  }
+
+  /* PANNEAU DROIT STYLE CAPTURES */
+  .side-col { display: flex; flex-direction: column; gap: 12px; }
+  .sub-tabs {
+    display: flex; gap: 6px; flex-wrap: wrap; background: #e2e8f0;
+    padding: 5px; border-radius: 14px;
+  }
+  .sub-tab {
+    flex: 1; min-width: 72px; padding: 8px 6px; border-radius: 10px; border: none;
+    background: transparent; color: #475569; font-weight: 800; font-size: 12.5px; cursor: pointer;
+  }
+  .sub-tab.active {
+    background: #ffffff; color: #0f172a; box-shadow: 0 2px 6px rgba(15,23,42,0.08);
+  }
+
+  .white-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 14px; box-shadow: 0 2px 8px rgba(15,23,42,0.04);
+  }
+  .summary-row {
+    display: flex; align-items: center; justify-content: space-between; font-weight: 800; font-size: 15px;
+  }
+  .summary-sub { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+  .section-title { font-size: 18px; font-weight: 900; margin: 4px 0 2px; color: var(--text); }
+
+  .tag-pill {
+    display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800;
+  }
+  .tag-gold { background: var(--gold-bg); color: var(--gold-text); }
+  .tag-green { background: var(--green-bg); color: var(--green-text); }
+  .tag-cat {
+    display: inline-block; padding: 3px 9px; border-radius: 8px; font-size: 11px; font-weight: 800;
+    letter-spacing: 0.4px; text-transform: uppercase; background: #fee2e2; color: #b91c1c;
+  }
+  .tag-cat.dist { background: #dcfce7; color: #15803d; }
+  .tag-cat.sabo { background: #fef3c7; color: #b45309; }
+  .tag-cat.cav { background: #dbeafe; color: #1d4ed8; }
+  .tag-cat.arm { background: #ffedd5; color: #c2410c; }
+  .tag-cat.air { background: #e0e7ff; color: #4338ca; }
+
+  .buy-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;
+  }
+  .buy-box {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 9px 8px; text-align: center; cursor: pointer; transition: all 0.14s ease;
+  }
+  .buy-box:hover:not(:disabled) { border-color: #94a3b8; background: #f1f5f9; }
+  .buy-box:disabled { opacity: 0.48; cursor: not-allowed; }
+  .buy-box .q { font-weight: 800; font-size: 14px; color: #334155; }
+  .buy-box .p { font-weight: 700; font-size: 12px; color: #64748b; margin-top: 2px; }
+
+  .troop-header { display: flex; gap: 12px; align-items: center; }
+  .troop-icon {
+    width: 56px; height: 56px; border-radius: 14px; background: #eff6ff;
+    border: 1px solid #dbeafe; display: flex; align-items: center; justify-content: center;
+    font-size: 28px; flex-shrink: 0;
+  }
+  .stat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .stat-chip {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+    padding: 5px 9px; font-size: 12px; font-weight: 700; color: #334155;
+  }
+  .lock-bar {
+    width: 100%; margin-top: 12px; padding: 11px; border-radius: 12px;
+    background: #f1f5f9; border: 1px solid #e2e8f0; color: #64748b;
+    font-weight: 800; font-size: 13px; text-align: center;
+  }
+  .btn {
+    padding: 10px 14px; border-radius: 12px; border: none; font-weight: 800; font-size: 13px;
+    cursor: pointer; color: #fff; background: var(--blue);
+  }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn.gold { background: var(--gold); color: #0f172a; }
+  .btn.green { background: var(--green); color: #fff; }
+  .btn.red { background: var(--red); color: #fff; }
+  .btn.purple { background: var(--purple); color: #fff; }
+  .btn.ghost { background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; }
+  .search-input {
+    width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #cbd5e1;
+    font-size: 14px; margin-bottom: 8px; font-weight: 600; background: #f8fafc;
+  }
+  .march-line { stroke: #f59e0b; stroke-width: 3; stroke-dasharray: 7 5; fill: none; }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(15,23,42,0.72); z-index: 60;
+    display: none; align-items: center; justify-content: center; padding: 14px;
+    backdrop-filter: blur(3px);
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    width: 100%; max-width: 440px; background: #ffffff; color: #0f172a;
+    border-radius: 20px; padding: 20px; box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+  }
+  .modal h2 { margin: 0 0 6px; font-size: 19px; }
+  .modal p { margin: 0 0 12px; font-size: 13px; color: #475569; line-height: 1.45; }
+  .modal input {
+    width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #cbd5e1;
+    font-size: 15px; margin-bottom: 10px; font-weight: 600;
+  }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; background: #f1f5f9; padding: 4px; border-radius: 12px; margin-bottom: 12px; }
+  .seg button {
+    border: none; padding: 8px; border-radius: 9px; font-weight: 700; font-size: 13px; cursor: pointer;
+    background: transparent; color: #475569;
+  }
+  .seg button.active { background: #ffffff; color: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+</style>
 </head>
 <body>
 
-  <!-- BARRE SUPÉRIEURE -->
-  <header class="topbar">
-    <div class="topbar-inner">
-      <nav class="tabs-row" id="tabs-row">
-        <button type="button" class="tab-btn active" id="tab-map">🌍 Carte</button>
-        <span id="owned-tabs-container" style="display:inline-flex;gap:6px;flex-wrap:wrap;"></span>
-      </nav>
-
-      <div class="hud-right">
-        <div class="hud-pill gold" id="hud-gold-pill" style="display:none;">
-          <span>🪙 <span id="hud-gold">0</span> or</span>
-          <span class="hud-rate" id="hud-rate">+4 or/s</span>
-        </div>
-        <div class="hud-pill know" id="hud-know-pill" style="display:none;">
-          <span>🧠 <span id="hud-know">0</span></span>
-        </div>
-        <button type="button" class="hud-btn" id="btn-multi-toggle">🌐 <span id="multi-btn-label">Multijoueur</span></button>
-        <button type="button" class="hud-btn" id="btn-cloud-modal">☁️ <span id="cloud-status-text">Profil</span></button>
-      </div>
+<header>
+  <div class="header-row">
+    <div class="top-group">
+      <button class="pill" onclick="resetZoom()">🌍 Carte</button>
+      <span class="pill active-country" id="hud-country-pill">🏳️ Choisir un pays</span>
     </div>
-  </header>
+    <div class="top-group">
+      <span class="pill gold-stat" id="hud-gold">🪙 100 or <span style="color:#4ade80;">+4 or/s</span></span>
+      <span class="pill know-stat" id="hud-know">🧠 0</span>
+      <button class="pill blue-btn" onclick="openMultiModal()">🌐 Salon</button>
+      <button class="pill green-btn" id="hud-sync" onclick="openAuthModal()">☁️ Profil</button>
+    </div>
+  </div>
+</header>
 
-  <main class="main-wrap">
-    <!-- BANDEAU GAINS HORS-LIGNE -->
-    <div class="offline-toast" id="offline-toast">
-      <span id="offline-toast-text"></span>
-      <button type="button" class="modal-close" id="close-offline-toast">OK</button>
+<div class="container">
+  <!-- CARTE DU MONDE 72 PAYS -->
+  <div class="map-card" id="map-box">
+    <div class="map-banner">
+      <div class="banner-chip" id="banner-status">👆 Touche un pays sur la carte pour fonder ton empire</div>
+      <div class="banner-chip" id="banner-room" style="display:none;color:#1d4ed8;">Salon : —</div>
     </div>
 
-    <!-- ONGLET 1 : CARTE DU MONDE -->
-    <section id="view-map">
-      <div class="map-stage" id="map-stage">
-        <svg id="worldMap" viewBox="0 0 1440 830" preserveAspectRatio="xMidYMid slice"></svg>
-        <div class="map-controls">
-          <button type="button" class="zoom-btn" id="btn-zoom-in" title="Zoomer">+</button>
-          <button type="button" class="zoom-btn" id="btn-zoom-out" title="Dézoomer">−</button>
-          <button type="button" class="zoom-btn" id="btn-zoom-reset" title="Recentrer">⌖</button>
-        </div>
-      </div>
+    <svg id="world-svg" viewBox="0 0 1600 900" width="1600" height="900" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+          <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+        </pattern>
+      </defs>
+      <rect x="0" y="0" width="1600" height="900" fill="url(#grid)" />
 
-      <div class="bottom-card" id="map-card">
-        <div class="card-info">
-          <div id="card-flag"></div>
-          <div>
-            <h2 class="card-title" id="card-title">Choisis ton pays de départ</h2>
-            <p class="card-sub" id="card-sub">Touche un pays sur la carte : il démarre gratuitement avec 2 mines d’or (+4 or/s), 1 ferme, 1 troupe et ton Génie.</p>
-            <div class="pills-row" id="card-pills" style="display:none;"></div>
-          </div>
-        </div>
-        <button type="button" class="primary-btn" id="card-action" style="display:none;">Choisir gratuitement</button>
-      </div>
+      <g id="viewport">
+        <!-- AMÉRIQUE DU NORD, ARCTIQUE & CARAÏBES -->
+        <path id="shape-CA" class="country-shape" data-id="CA" d="M 85,155 L 255,115 L 365,155 L 350,245 L 135,250 L 80,205 Z" />
+        <path id="shape-US" class="country-shape" data-id="US" d="M 135,250 L 350,245 L 368,332 L 265,362 L 155,340 Z" />
+        <path id="shape-MX" class="country-shape" data-id="MX" d="M 175,345 L 265,362 L 295,432 L 245,448 L 190,398 Z" />
+        <path id="shape-CU" class="country-shape" data-id="CU" d="M 305,392 L 362,395 L 360,418 L 302,415 Z" />
+        <path id="shape-PA" class="country-shape" data-id="PA" d="M 272,445 L 325,448 L 328,478 L 275,475 Z" />
+        <path id="shape-GL" class="country-shape" data-id="GL" d="M 410,48 L 535,42 L 555,138 L 448,168 L 402,110 Z" />
+        <path id="shape-IS" class="country-shape" data-id="IS" d="M 555,165 L 605,162 L 608,192 L 555,194 Z" />
 
-      <!-- CAMPAGNES MILITAIRES EN COURS (TEMPS RÉEL EN JOURS/HEURES) -->
-      <div class="campaigns-panel" id="campaigns-panel" style="display:none;"></div>
+        <!-- AMÉRIQUE DU SUD -->
+        <path id="shape-CO" class="country-shape" data-id="CO" d="M 315,480 L 372,478 L 378,538 L 318,542 Z" />
+        <path id="shape-VE" class="country-shape" data-id="VE" d="M 372,475 L 435,480 L 432,532 L 375,532 Z" />
+        <path id="shape-PE" class="country-shape" data-id="PE" d="M 312,542 L 368,542 L 375,622 L 320,618 Z" />
+        <path id="shape-BR" class="country-shape" data-id="BR" d="M 375,528 L 502,542 L 492,658 L 415,668 L 372,615 Z" />
+        <path id="shape-BO" class="country-shape" data-id="BO" d="M 372,618 L 422,620 L 420,675 L 370,672 Z" />
+        <path id="shape-CL" class="country-shape" data-id="CL" d="M 342,645 L 372,648 L 365,815 L 338,810 Z" />
+        <path id="shape-AR" class="country-shape" data-id="AR" d="M 372,675 L 438,678 L 415,810 L 366,808 Z" />
+        <path id="shape-UY" class="country-shape" data-id="UY" d="M 438,678 L 478,680 L 475,718 L 436,716 Z" />
 
-      <!-- PANNEAU MULTIJOUEUR -->
-      <div class="multi-panel" id="multi-panel" style="display:none;"></div>
-    </section>
+        <!-- EUROPE -->
+        <path id="shape-IE" class="country-shape" data-id="IE" d="M 582,222 L 614,220 L 616,256 L 582,258 Z" />
+        <path id="shape-GB" class="country-shape" data-id="GB" d="M 618,202 L 656,198 L 660,260 L 618,262 Z" />
+        <path id="shape-PT" class="country-shape" data-id="PT" d="M 595,326 L 618,326 L 618,374 L 594,374 Z" />
+        <path id="shape-ES" class="country-shape" data-id="ES" d="M 618,324 L 675,322 L 675,374 L 618,374 Z" />
+        <path id="shape-FR" class="country-shape" data-id="FR" d="M 632,268 L 692,266 L 694,322 L 632,322 Z" />
+        <path id="shape-BE" class="country-shape" data-id="BE" d="M 672,244 L 702,244 L 702,266 L 672,266 Z" />
+        <path id="shape-NL" class="country-shape" data-id="NL" d="M 678,220 L 708,220 L 708,244 L 678,244 Z" />
+        <path id="shape-CH" class="country-shape" data-id="CH" d="M 694,296 L 732,296 L 732,318 L 694,318 Z" />
+        <path id="shape-DE" class="country-shape" data-id="DE" d="M 702,232 L 758,232 L 758,296 L 702,296 Z" />
+        <path id="shape-DK" class="country-shape" data-id="DK" d="M 712,196 L 746,196 L 746,230 L 712,230 Z" />
+        <path id="shape-NO" class="country-shape" data-id="NO" d="M 692,108 L 744,102 L 746,192 L 695,194 Z" />
+        <path id="shape-SE" class="country-shape" data-id="SE" d="M 746,105 L 796,105 L 796,198 L 746,198 Z" />
+        <path id="shape-FI" class="country-shape" data-id="FI" d="M 798,105 L 852,105 L 852,188 L 798,188 Z" />
+        <path id="shape-IT" class="country-shape" data-id="IT" d="M 698,320 L 746,322 L 758,382 L 714,382 Z" />
+        <path id="shape-AT" class="country-shape" data-id="AT" d="M 734,296 L 786,296 L 786,320 L 734,320 Z" />
+        <path id="shape-PL" class="country-shape" data-id="PL" d="M 758,228 L 822,228 L 822,286 L 758,286 Z" />
+        <path id="shape-RO" class="country-shape" data-id="RO" d="M 786,298 L 848,298 L 848,342 L 786,342 Z" />
+        <path id="shape-GR" class="country-shape" data-id="GR" d="M 776,344 L 828,344 L 828,392 L 776,392 Z" />
+        <path id="shape-UA" class="country-shape" data-id="UA" d="M 822,242 L 908,242 L 908,302 L 822,302 Z" />
 
-    <!-- ONGLET 2 : PAGE DU PAYS CHOISI -->
-    <section id="view-country" style="display:none;"></section>
-  </main>
+        <!-- AFRIQUE -->
+        <path id="shape-MA" class="country-shape" data-id="MA" d="M 594,394 L 652,394 L 652,448 L 588,448 Z" />
+        <path id="shape-DZ" class="country-shape" data-id="DZ" d="M 652,394 L 725,394 L 725,478 L 652,478 Z" />
+        <path id="shape-TN" class="country-shape" data-id="TN" d="M 702,388 L 732,388 L 732,425 L 702,425 Z" />
+        <path id="shape-LY" class="country-shape" data-id="LY" d="M 725,405 L 798,405 L 798,478 L 725,478 Z" />
+        <path id="shape-EG" class="country-shape" data-id="EG" d="M 798,408 L 866,408 L 866,478 L 798,478 Z" />
+        <path id="shape-SN" class="country-shape" data-id="SN" d="M 576,478 L 638,478 L 638,532 L 576,532 Z" />
+        <path id="shape-CI" class="country-shape" data-id="CI" d="M 638,505 L 696,505 L 696,558 L 638,558 Z" />
+        <path id="shape-NG" class="country-shape" data-id="NG" d="M 696,482 L 768,482 L 768,558 L 696,558 Z" />
+        <path id="shape-SD" class="country-shape" data-id="SD" d="M 798,478 L 875,478 L 875,552 L 798,552 Z" />
+        <path id="shape-ET" class="country-shape" data-id="ET" d="M 855,535 L 928,535 L 928,595 L 855,595 Z" />
+        <path id="shape-CD" class="country-shape" data-id="CD" d="M 745,558 L 828,558 L 828,645 L 745,645 Z" />
+        <path id="shape-KE" class="country-shape" data-id="KE" d="M 828,575 L 892,575 L 892,642 L 828,642 Z" />
+        <path id="shape-AO" class="country-shape" data-id="AO" d="M 738,645 L 812,645 L 812,712 L 738,712 Z" />
+        <path id="shape-ZA" class="country-shape" data-id="ZA" d="M 748,712 L 832,712 L 818,805 L 752,805 Z" />
+        <path id="shape-MG" class="country-shape" data-id="MG" d="M 885,685 L 922,685 L 916,768 L 880,768 Z" />
 
-  <!-- MODALE PROFIL CLOUD (PSEUDO + PIN 4 CHIFFRES) -->
-  <div class="modal-backdrop" id="cloud-modal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <strong style="font-size:17.5px;">☁️ Sauvegarde Auto en Ligne</strong>
-        <button type="button" class="modal-close" id="close-cloud-modal">✕</button>
-      </div>
-      <p style="margin:0 0 12px;font-size:13px;color:var(--mute);line-height:1.45;">
-        Connecte-toi avec ton <b>Pseudo</b> et un <b>code PIN à 4 chiffres</b> : ta progression et tes gains hors-ligne sont sauvegardés automatiquement sans aucun code à copier-coller !
-      </p>
+        <!-- MOYEN-ORIENT & ASIE -->
+        <path id="shape-TR" class="country-shape" data-id="TR" d="M 832,338 L 925,338 L 925,384 L 832,384 Z" />
+        <path id="shape-IQ" class="country-shape" data-id="IQ" d="M 898,384 L 952,384 L 952,432 L 898,432 Z" />
+        <path id="shape-SA" class="country-shape" data-id="SA" d="M 872,422 L 962,428 L 962,512 L 876,506 Z" />
+        <path id="shape-AE" class="country-shape" data-id="AE" d="M 956,468 L 998,468 L 998,508 L 956,508 Z" />
+        <path id="shape-IR" class="country-shape" data-id="IR" d="M 952,368 L 1038,368 L 1038,448 L 952,448 Z" />
+        <path id="shape-KZ" class="country-shape" data-id="KZ" d="M 912,235 L 1068,235 L 1068,302 L 912,302 Z" />
+        <path id="shape-RU" class="country-shape" data-id="RU" d="M 855,95 L 1395,95 L 1425,232 L 912,232 L 855,195 Z" />
+        <path id="shape-PK" class="country-shape" data-id="PK" d="M 1038,395 L 1086,395 L 1086,472 L 1038,472 Z" />
+        <path id="shape-IN" class="country-shape" data-id="IN" d="M 1086,412 L 1178,412 L 1155,555 L 1102,555 Z" />
+        <path id="shape-CN" class="country-shape" data-id="CN" d="M 1068,265 L 1285,265 L 1285,412 L 1068,412 Z" />
+        <path id="shape-MN" class="country-shape" data-id="MN" d="M 1115,228 L 1245,228 L 1245,265 L 1115,265 Z" />
+        <path id="shape-TH" class="country-shape" data-id="TH" d="M 1182,455 L 1235,455 L 1235,535 L 1182,535 Z" />
+        <path id="shape-VN" class="country-shape" data-id="VN" d="M 1235,452 L 1276,452 L 1276,538 L 1235,538 Z" />
+        <path id="shape-KR" class="country-shape" data-id="KR" d="M 1292,312 L 1326,312 L 1326,356 L 1292,356 Z" />
+        <path id="shape-JP" class="country-shape" data-id="JP" d="M 1345,295 L 1388,295 L 1382,385 L 1340,385 Z" />
 
-      <div class="auth-tabs">
-        <button type="button" class="auth-tab active" id="tab-auth-login">Reprendre ma partie</button>
-        <button type="button" class="auth-tab" id="tab-auth-register">Nouvelle partie</button>
-      </div>
+        <!-- OCÉANIE & PACIFIQUE -->
+        <path id="shape-PH" class="country-shape" data-id="PH" d="M 1295,445 L 1338,445 L 1338,518 L 1295,518 Z" />
+        <path id="shape-ID" class="country-shape" data-id="ID" d="M 1192,555 L 1345,565 L 1345,618 L 1192,608 Z" />
+        <path id="shape-AU" class="country-shape" data-id="AU" d="M 1235,642 L 1405,642 L 1405,768 L 1235,768 Z" />
+        <path id="shape-NZ" class="country-shape" data-id="NZ" d="M 1435,755 L 1485,755 L 1480,825 L 1430,825 Z" />
 
-      <form id="cloud-auth-form" autocomplete="on">
-        <div style="margin-bottom:10px;">
-          <label style="display:block;font-size:12.5px;font-weight:800;margin-bottom:4px;">Pseudo du joueur</label>
-          <input type="text" class="multi-input" id="cloud-username" name="username" autocomplete="username" maxlength="20" placeholder="Ex : Alex92" required />
-        </div>
-        <div style="margin-bottom:12px;">
-          <label style="display:block;font-size:12.5px;font-weight:800;margin-bottom:4px;">Code PIN (4 chiffres)</label>
-          <input type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" class="multi-input" id="cloud-pin" name="password" autocomplete="current-password" placeholder="Ex : 1234" required />
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button type="submit" class="primary-btn green" id="btn-cloud-submit" style="flex:1;">Charger ma sauvegarde</button>
-          <button type="button" class="primary-btn secondary" id="btn-play-guest" style="padding:11px 14px;font-size:13px;">Jouer sans compte</button>
-        </div>
-      </form>
+        <g id="marches-layer"></g>
+        <g id="labels-layer"></g>
+      </g>
+    </svg>
 
-      <div id="cloud-connected-actions" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="font-size:12.5px;font-weight:800;color:#15803d;" id="cloud-active-user-label"></span>
-        <div style="display:flex;gap:6px;">
-          <button type="button" class="primary-btn secondary" id="btn-cloud-sync-now" style="padding:7px 11px;font-size:12px;">Synchroniser</button>
-          <button type="button" class="primary-btn danger" id="btn-cloud-logout" style="padding:7px 11px;font-size:12px;">Déconnexion</button>
-        </div>
-      </div>
-
-      <div id="cloud-feedback" style="margin-top:9px;font-size:12.5px;font-weight:800;color:#15803d;min-height:18px;"></div>
+    <div class="zoom-controls">
+      <button class="zoom-btn" onclick="zoomMap(1.25)" title="Zoomer">+</button>
+      <button class="zoom-btn" onclick="zoomMap(0.8)" title="Dézoomer">−</button>
+      <button class="zoom-btn" onclick="resetZoom()" title="Recentrer">⌖</button>
     </div>
   </div>
 
-  <!-- Firebase SDK v10 Compat (compatible Safari/Chrome mobile & GitHub Pages) -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <!-- COLONNE GESTION IDENTIQUE AUX CAPTURES -->
+  <div class="side-col">
+    <div class="sub-tabs">
+      <button class="sub-tab active" id="tab-gestion" onclick="switchTab('gestion')">🏛️ Gestion</button>
+      <button class="sub-tab" id="tab-genie" onclick="switchTab('genie')">🧞 Génie</button>
+      <button class="sub-tab" id="tab-war" onclick="switchTab('war')">🚀 Attaques</button>
+      <button class="sub-tab" id="tab-list" onclick="switchTab('list')">📋 72 Pays</button>
+    </div>
+    <div id="tab-content"></div>
+  </div>
+</div>
 
-  <script>
-    (function () {
-      'use strict';
+<!-- MODALE PROFIL CLOUD (PSEUDO + PIN 4 CHIFFRES) -->
+<div class="modal-backdrop" id="auth-modal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h2>☁️ Sauvegarde Auto en Ligne</h2>
+      <button class="btn ghost" style="padding:4px 10px;" onclick="closeModal('auth-modal')">✕</button>
+    </div>
+    <p>Connecte-toi avec ton <b>Pseudo</b> et un <b>code PIN à 4 chiffres</b> : ta progression, ton Génie et tes gains hors-ligne sont sauvegardés automatiquement.</p>
+    <div class="seg">
+      <button id="seg-login" class="active" onclick="setAuthMode('login')">Reprendre ma partie</button>
+      <button id="seg-register" onclick="setAuthMode('register')">Nouvelle partie</button>
+    </div>
+    <label style="font-size:12px;font-weight:700;">Pseudo du joueur</label>
+    <input id="auth-pseudo" type="text" placeholder="Ex: Cireme" maxlength="20" autocomplete="username" />
+    <label style="font-size:12px;font-weight:700;">Code PIN (4 chiffres)</label>
+    <input id="auth-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="current-password" />
+    <div id="auth-msg" style="font-size:12px;font-weight:700;color:#dc2626;min-height:18px;margin-bottom:8px;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button class="btn green" id="auth-submit-btn" onclick="submitAuth()">Charger ma sauvegarde</button>
+      <button class="btn ghost" onclick="closeModal('auth-modal')">Jouer sans compte</button>
+    </div>
+  </div>
+</div>
 
-      // =========================================================================
-      // 1. INITIALISATION FIREBASE (CONFIG RÉELLE DU PROJET GUERRE-DES-PAYS)
-      // =========================================================================
-      var firebaseConfig = {
-        apiKey: "AIzaSyCP3jdFi1J0tNQ6TjI5RBnsH9ZMhTNRXPc",
-        authDomain: "guerre-des-pays.firebaseapp.com",
-        databaseURL: "https://guerre-des-pays-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "guerre-des-pays",
-        storageBucket: "guerre-des-pays.firebasestorage.app",
-        messagingSenderId: "927233616745",
-        appId: "1:927233616745:web:b3205b17eb5ad6074f6bf8"
-      };
+<!-- MODALE MULTIJOUEUR -->
+<div class="modal-backdrop" id="multi-modal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h2>🌐 Multijoueur en Ligne</h2>
+      <button class="btn ghost" style="padding:4px 10px;" onclick="closeModal('multi-modal')">✕</button>
+    </div>
+    <p>Crée un salon et partage le code court à tes potes pour conquérir les 72 pays en temps réel.</p>
+    <button class="btn gold" style="width:100%;margin-bottom:12px;" onclick="createRoom()">✨ Créer un nouveau salon</button>
+    <label style="font-size:12px;font-weight:700;">Rejoindre un salon existant (Code à 5 lettres)</label>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <input id="room-code-input" type="text" placeholder="Ex: GP48K" maxlength="6" style="margin:0;text-transform:uppercase;" />
+      <button class="btn" onclick="joinRoom()">Rejoindre</button>
+    </div>
+    <div id="multi-status" style="margin-top:10px;font-size:12px;font-weight:700;color:#0f172a;"></div>
+  </div>
+</div>
 
-      var fbApp = null;
-      var fbAuth = null;
-      var fbDb = null;
-      var fbRtdb = null;
-      var fbUser = null;
-      var roomUnsub = null;
-      var chatUnsub = null;
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-      try {
-        if (typeof firebase !== 'undefined') {
-          fbApp = firebase.apps && firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
-          fbAuth = firebase.auth();
-          try { fbDb = firebase.firestore(); } catch (e) {}
-          try { fbRtdb = firebase.database(); } catch (e) {}
+<script>
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCP3jdFi1J0tNQ6TjI5RBnsH9ZMhTNRXPc",
+  authDomain: "guerre-des-pays.firebaseapp.com",
+  projectId: "guerre-des-pays",
+  storageBucket: "guerre-des-pays.firebasestorage.app",
+  messagingSenderId: "927233616745",
+  appId: "1:927233616745:web:b3205b17eb5ad6074f6bf8"
+};
 
-          fbAuth.onAuthStateChanged(function (user) {
-            fbUser = user;
-            if (user && state.cloud.username && state.cloud.pin && state.cloud.connected) {
-              pullCloudSave(state.cloud.username, state.cloud.pin, true);
-            }
-          });
+/* FORMATAGE DES NOMBRES (ex: 100 000, 1 200 000) */
+function fmt(n) {
+  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
 
-          fbAuth.signInAnonymously().catch(function () {
-            // Si l'auth anonyme n'est pas activée, le fallback REST / public rules prend le relais
-          });
-        }
-      } catch (e) {}
+/* PRIX EXACTS DES CAPTURES D'ÉCRAN + PROGRESSION À CHAQUE ACHAT */
+const MAX_INFRA = 300000;
+const MINE_BASE = 100000;
+const MINE_GROWTH = 1.5;
+const FARM_BASE = 80000;
+const FARM_GROWTH = 1.5;
 
-      // =========================================================================
-      // 2. CONSTANTES ÉCONOMIQUES, DÉVELOPPEMENT, GÉNIE & CONQUÊTES
-// ... existing code ... -->
-      function getCloudDocRef(username, pin) {
-        if (!fbDb) return null;
-        var cleanUser = (username || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
-        var cleanPin = (pin || '').trim();
-        if (!cleanUser || cleanPin.length !== 4) return null;
-        return fbDb.collection('player_saves').doc(cleanUser + '_' + cleanPin);
-      }
+const TIER_DEFS = [
+  { cat:"Infanterie", cls:"",     icon:"🪖", baseCost:150000,  growth:1.0, hp:95,   atk:38,  def:24,  reqLvl:1 },
+  { cat:"Distance",   cls:"dist", icon:"🏹", baseCost:300000,  growth:1.0, hp:196,  atk:75,  def:49,  reqLvl:1 },
+  { cat:"Sabotage",   cls:"sabo", icon:"💣", baseCost:600000,  growth:1.0, hp:326,  atk:155, def:76,  reqLvl:1 },
+  { cat:"Cavalerie",  cls:"cav",  icon:"🐎", baseCost:1200000, growth:1.0, hp:750,  atk:234, def:198, reqLvl:1 },
+  { cat:"Blindé",     cls:"arm",  icon:"🛡️", baseCost:2400000, growth:1.0, hp:1302, atk:479, def:361, reqLvl:4 },
+  { cat:"Aviation",   cls:"air",  icon:"✈️", baseCost:4800000, growth:1.0, hp:1566, atk:835, def:435, reqLvl:5 }
+];
 
-      function getRtdbProfileUrls(username, pin) {
-        var cleanUser = (username || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
-        var cleanPin = (pin || '').trim();
-        if (!cleanUser || cleanPin.length !== 4) return [];
-        var key = cleanUser + '_' + cleanPin;
-        return [
-          'https://guerre-des-pays-default-rtdb.europe-west1.firebasedatabase.app/player_saves/' + key + '.json',
-          'https://guerre-des-pays-default-rtdb.firebaseio.com/player_saves/' + key + '.json'
-        ];
-      }
+/* CALCUL DU COÛT POUR ACHETER `qty` UNITÉS AVEC PROGRESSION À CHAQUE ACHAT */
+function calcSeriesCost(base, growth, alreadyBought, qty) {
+  if (qty <= 0) return 0;
+  if (growth === 1.0) return base * qty;
+  let total = 0;
+  for (let i = 0; i < qty; i++) {
+    total += Math.round(base * Math.pow(growth, alreadyBought + i));
+  }
+  return total;
+}
+function calcMaxAffordable(base, growth, alreadyBought, gold, capRem) {
+  if (growth === 1.0) {
+    const count = Math.max(0, Math.min(capRem, Math.floor(gold / base)));
+    return { count, cost: count * base };
+  }
+  let count = 0;
+  let spent = 0;
+  while (count < capRem && count < 500) {
+    const nextPrice = Math.round(base * Math.pow(growth, alreadyBought + count));
+    if (!Number.isFinite(nextPrice) || spent + nextPrice > gold) break;
+    spent += nextPrice;
+    count++;
+  }
+  return { count, cost: spent };
+}
 
-      function pushCloudSave(showTime) {
-        state.lastSavedAt = Date.now();
-        var payload = buildSaveObject();
-        try {
-          localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify({
-            save: payload,
-            cloud: { username: state.cloud.username, pin: state.cloud.pin }
-          }));
-        } catch (e) {}
+function getMineUnitPrice(p) {
+  const bought = Math.max(0, (p.mines || 2) - 2);
+  return Math.round(MINE_BASE * Math.pow(MINE_GROWTH, bought));
+}
+function getFarmUnitPrice(p) {
+  const bought = Math.max(0, (p.farms || 1) - 1);
+  return Math.round(FARM_BASE * Math.pow(FARM_GROWTH, bought));
+}
+function getTroopUnitPrice(p, idx) {
+  const count = p.troops[idx] || 0;
+  const bought = Math.max(0, count - (idx === 0 ? 1 : 0));
+  return Math.round(TIER_DEFS[idx].baseCost * Math.pow(TIER_DEFS[idx].growth, bought));
+}
+function getCountryLevelCosts(level) {
+  return {
+    gold: Math.round(250000 * Math.pow(2.4, level - 1)),
+    know: Math.round(15 * Math.pow(2.0, level - 1))
+  };
+}
 
-        if (state.cloud.connected && state.cloud.username && state.cloud.pin) {
-          var saveBody = {
-            username: state.cloud.username,
-            updatedAt: Date.now(),
-            payloadJson: JSON.stringify(payload)
-          };
+/* BASE DE 72 PAYS AVEC TROUPES EXCLUSIVES & DESCRIPTIONS */
+const RAW_COUNTRIES = [
+  { id:"GL", name:"Groenland", flag:"🇬🇱", x:475, y:105, u:[
+    {n:"Guerrier des glaces", d:"Combattant en parka bleue bordée de fourrure blanche maniant une hache de givre."},
+    {n:"Harponneur", d:"Chasseur arctique en tenue polaire projetant un grand harpon d'acier."},
+    {n:"Pingouin artificier", d:"Pingouin intrépide transportant une bombe ronde noire à mèche étincelante."},
+    {n:"Ours de guerre", d:"Colossal ours polaire blanc équipé d'une selle de combat bleue."},
+    {n:"Brise-Glace Titan", d:"Forteresse chenillée polaire fendant la banquise et les lignes adverses."},
+    {n:"Léviathan Arctique", d:"Chasseur stratosphérique des aurores boréales."}
+  ]},
+  { id:"CA", name:"Canada", flag:"🇨🇦", x:225, y:195, u:[
+    {n:"Ranger Canadien", d:"Éclaireur des forêts boréales rompu aux embuscades hivernales."},
+    {n:"Tireur d'Élite JTF2", d:"Sniper longue distance camouflé dans la toundra."},
+    {n:"Sapeur des Rocheuses", d:"Spécialiste des charges explosives en terrain escarpé."},
+    {n:"Escadron Monté Royal", d:"Unité rapide d'intervention tout-terrain."},
+    {n:"Blindé LAV 6.0", d:"Véhicule de combat d'infanterie lourdement blindé."},
+    {n:"Chasseur CF-18 Hornet", d:"Intercepteur supersonique protégeant le Grand Nord."}
+  ]},
+  { id:"US", name:"États-Unis", flag:"🇺🇸", x:250, y:298, u:[
+    {n:"US Marine", d:"Infanterie d'assaut amphibie entraînée sur tous les théâtres."},
+    {n:"US Ranger", d:"Unité d'appui feu rapide et de reconnaissance."},
+    {n:"Navy SEAL Saboteur", d:"Commando furtif spécialisé dans l'infiltration derrière les lignes."},
+    {n:"Cavalerie Aéromobile", d:"Unité d'assaut héliportée à haute mobilité."},
+    {n:"Char M1A2 Abrams", d:"Char lourd à blindage composite et puissance de feu dévastatrice."},
+    {n:"F-22 Raptor", d:"Chasseur furtif de supériorité aérienne absolue."}
+  ]},
+  { id:"MX", name:"Mexique", flag:"🇲🇽", x:235, y:392, u:[
+    {n:"Fantassin Selva", d:"Combattant agile spécialisé dans la jungle tropicale."},
+    {n:"Tireur de la Sierra", d:"Chasseur de montagne à tir précis."},
+    {n:"Forces Spéciales FES", d:"Unité d'élite d'action rapide et de sabotage."},
+    {n:"Dragons Blindés", d:"Cavalerie motorisée légère de reconnaissance."},
+    {n:"Blindé DN-XI", d:"Transport blindé armé de tourelle automatique."},
+    {n:"Escadre F-5 Tigre", d:"Intercepteurs légers rapides en formation serrée."}
+  ]},
+  { id:"CU", name:"Cuba", flag:"🇨🇺", x:332, y:406, u:[
+    {n:"Milice Côtière", d:"Défenseurs tenaces des plages et ports stratégiques."},
+    {n:"Artilleur Côtier", d:"Batterie mobile couvrant les détroits maritimes."},
+    {n:"Nageur de Combat", d:"Saboteur naval opérant de nuit."},
+    {n:"Patrouille Rapide", d:"Unité mobile d'intervention insulaire."},
+    {n:"Char T-62M", d:"Char moyen modernisé avec blindage additionnel."},
+    {n:"Escadrille MiG-29", d:"Chasseurs d'interception à haute altitude."}
+  ]},
+  { id:"PA", name:"Panama", flag:"🇵🇦", x:300, y:462, u:[
+    {n:"Garde du Canal", d:"Sentinelle protégeant les écluses stratégiques."},
+    {n:"Patrouilleur Fluvial", d:"Tireur embarqué sur vedette rapide."},
+    {n:"Commando Darién", d:"Spécialiste de la guérilla en forêt dense."},
+    {n:"Unité d'Intervention", d:"Force mobile déployée le long de l'isthme."},
+    {n:"Blindé Léger", d:"Véhicule rapide de soutien d'infanterie."},
+    {n:"Patrouilleur Aéronaval", d:"Appareil de surveillance maritime longue portée."}
+  ]},
+  { id:"IS", name:"Islande", flag:"🇮🇸", x:580, y:180, u:[
+    {n:"Garde-Côtes Viking", d:"Combattant robuste des mers boréales."},
+    {n:"Éclaireur Volcanique", d:"Tireur opérant sur les champs de lave."},
+    {n:"Saboteur des Fjords", d:"Spécialiste des opérations maritimes furtives."},
+    {n:"Patrouille Polaire", d:"Unité rapide adaptée aux tempêtes arctiques."},
+    {n:"Batterie Radar OTAN", d:"Poste blindé de défense antiaérienne."},
+    {n:"Intercepteur Atlantique", d:"Chasseur patrouillant entre l'Europe et l'Amérique."}
+  ]},
+  { id:"FR", name:"France", flag:"🇫🇷", x:662, y:295, u:[
+    {n:"Fantassin de Ligne", d:"Infanterie polyvalente équipée du fusil HK416F."},
+    {n:"Chasseur Alpin", d:"Tireur d'élite des sommets opérant en haute montagne."},
+    {n:"Commando Marine", d:"Unité d'élite d'infiltration et de sabotage."},
+    {n:"Spahis Blindés", d:"Cavalerie légère de reconnaissance et d'assaut rapide."},
+    {n:"Char Leclerc", d:"Char de bataille principal à chargement automatique en mouvement."},
+    {n:"Rafale F4", d:"Avion de combat omnirôle de dernière génération."}
+  ]}
+];
 
-          // 1) Tentative Firestore
-          var ref = getCloudDocRef(state.cloud.username, state.cloud.pin);
-          if (ref) {
-            ref.set(saveBody).catch(function () {});
-          }
+/* COMPLÉTER AUTOMATIQUEMENT LES 64 AUTRES PAYS AVEC LEURS TROUPES EXCLUSIVES */
+const EXTRA_COUNTRIES = [
+  { id:"CO", name:"Colombie", flag:"🇨🇴", x:345, y:510, u:["Lancero Jungle","Tireur des Andes","Commando Jungla","Cavalerie Llanos","Blindé Cascavel","Chasseur Kfir"] },
+  { id:"VE", name:"Venezuela", flag:"🇻🇪", x:404, y:505, u:["Infanterie Bolivarienne","Tireur Orénoque","Parachutiste Caribe","Escadron Blindé","Char T-72B1","Chasseur Su-30MK2"] },
+  { id:"PE", name:"Pérou", flag:"🇵🇪", x:342, y:582, u:["Chasseur des Andes","Frondeur Inca","Commando Chavín","Hussard de Junín","Char T-55M","Mirage 2000P"] },
+  { id:"BR", name:"Brésil", flag:"🇧🇷", x:435, y:600, u:["Guerrier Amazonie","Tireur Pantanal","Batalhão BOPE","Dragons de l'Indépendance","Blindé Guarani","Chasseur Gripen E"] },
+  { id:"BO", name:"Bolivie", flag:"🇧🇴", x:396, y:648, u:["Fantassin Altiplano","Tireur Andin","Rangers Satinadores","Cavalerie des Hauts Plateaux","Blindé EE-9","Escadrille K-8"] },
+  { id:"CL", name:"Chili", flag:"🇨🇱", x:356, y:730, u:["Infanterie Atacama","Tireur Patagonie","Fusilier Marin","Granaderos","Char Leopard 2A4","F-16 Fighting Falcon"] },
+  { id:"AR", name:"Argentine", flag:"🇦🇷", x:402, y:742, u:["Grenadier des Andes","Tireur Pampa","Commando Amphibi","Grenadiers à Cheval","Char TAM 2C","Avion Pampa III"] },
+  { id:"UY", name:"Uruguay", flag:"🇺🇾", x:456, y:700, u:["Blandengues","Tireur Río de la Plata","Saboteur Côtier","Cavalerie Gaucho","Blindé Mowag","Patrouilleur Maritime"] },
 
-          // 2) Tentative Realtime Database (SDK + REST Europe/US)
-          var urls = getRtdbProfileUrls(state.cloud.username, state.cloud.pin);
-          for (var i = 0; i < urls.length; i++) {
-            fetch(urls[i], {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(saveBody)
-            }).catch(function () {});
-          }
-        }
-        if (showTime) updateCloudHudStatus();
-      }
+  { id:"IE", name:"Irlande", flag:"🇮🇪", x:598, y:240, u:["Fantassin Émeraude","Tireur des Landes","Army Ranger Wing","Cavalerie Légère","Blindé Piranha","Patrouilleur Atlantique"] },
+  { id:"GB", name:"Royaume-Uni", flag:"🇬🇧", x:638, y:232, u:["Royal Marine","Archer Longbow","Commandos SAS","Household Cavalry","Char Challenger 3","F-35B Lightning"] },
+  { id:"PT", name:"Portugal", flag:"🇵🇹", x:606, y:350, u:["Fusilier Marin","Arbalétrier Lusitanien","Commando Viriato","Lanciers Royaux","Char Leopard 2A6","F-16M Atlantique"] },
+  { id:"ES", name:"Espagne", flag:"🇪🇸", x:646, y:348, u:["Légionnaire","Tireur Castillan","Opérations Spéciales MOE","Cavalerie Farnesio","Char Leopardo 2E","Eurofighter Espagne"] },
+  { id:"BE", name:"Belgique", flag:"🇧🇪", x:687, y:256, u:["Chasseur Ardennais","Tireur des Flandres","Para-Commando","Guides Blindés","Blindé Griffon","F-35A Belgique"] },
+  { id:"NL", name:"Pays-Bas", flag:"🇳🇱", x:693, y:233, u:["Korps Mariniers","Tireur des Digues","Korps Commandotroepen","Hussards de Boreel","Blindé Boxer","F-35A Pays-Bas"] },
+  { id:"CH", name:"Suisse", flag:"🇨🇭", x:713, y:308, u:["Grenadier Alpin","Carabinier Helvétique","Éclaireur Parachutiste","Dragons Alpins","Char Panzer 87","F/A-18 Hornet"] },
+  { id:"DE", name:"Allemagne", flag:"🇩🇪", x:730, y:265, u:["Grenadier","Tireur de Précision","Kommando Spezialkräfte","Panzergrenadier","Char Leopard 2A7","Eurofighter Typhoon"] },
+  { id:"DK", name:"Danemark", flag:"🇩🇰", x:729, y:214, u:["Garde Royale","Tireur Jutland","Corps Jæger","Hussards de la Garde","Char Leopard 2A7DK","Escadre F-35"] },
+  { id:"NO", name:"Norvège", flag:"🇳🇴", x:720, y:152, u:["Chasseur Arctique","Tireur des Fjords","Marinejegerkommandoen","Patrouille Polaire","Blindé CV90","Escadrille F-35"] },
+  { id:"SE", name:"Suède", flag:"🇸🇪", x:771, y:152, u:["Chasseur Nordique","Tireur Dalécarlie","Ranger Kustjägare","Dragons Royaux","Char Stridsvagn 122","JAS 39 Gripen"] },
+  { id:"FI", name:"Finlande", flag:"🇫🇮", x:825, y:148, u:["Jäger Arctique","Sniper Blanc","Patrouille Lointaine","Cavalerie Carélie","Char Leopard 2A6","F-35A Finlande"] },
+  { id:"IT", name:"Italie", flag:"🇮🇹", x:724, y:352, u:["Bersaglieri","Alpinis","Incursori Col Moschin","Cavalerie Savoia","Char Ariete","F-35B Marina"] },
+  { id:"AT", name:"Autriche", flag:"🇦🇹", x:760, y:309, u:["Chasseur Tyrolien","Tireur Alpin","Jagdkommando","Dragons du Danube","Char Leopard 2A4","Eurofighter Autriche"] },
+  { id:"PL", name:"Pologne", flag:"🇵🇱", x:790, y:258, u:["Fantassin Frontière","Tireur Vistule","Unité GROM","Hussards Ailés","Char K2 Black Panther","F-35A Husarz"] },
+  { id:"RO", name:"Roumanie", flag:"🇷🇴", x:817, y:320, u:["Chasseur Carpates","Tireur Transylvanie","Forces Spéciales","Cavalerie Danube","Char TR-85M1","F-16 Roumanie"] },
+  { id:"GR", name:"Grèce", flag:"🇬🇷", x:802, y:368, u:["Evzone d'Élite","Tireur Olympe","Commando Égée","Cavalerie Thessalie","Char Leopard 2HEL","Rafale EG"] },
+  { id:"UA", name:"Ukraine", flag:"🇺🇦", x:865, y:272, u:["Défenseur Territoire","Sniper des Steppes","Opérateur Drone FPV","Cosaques Blindés","Char Oplot","F-16 Ukraine"] },
 
-      function tryFetchRtdbProfile(urls, idx) {
-        if (idx >= urls.length) return Promise.resolve(null);
-        return fetch(urls[idx])
-          .then(function (r) { return r.ok ? r.json() : null; })
-          .then(function (data) {
-            if (data && data.payloadJson) return data;
-            return tryFetchRtdbProfile(urls, idx + 1);
-          })
-          .catch(function () {
-            return tryFetchRtdbProfile(urls, idx + 1);
-          });
-      }
+  { id:"MA", name:"Maroc", flag:"🇲🇦", x:622, y:422, u:["Fantassin Atlas","Tireur du Rif","Parachutiste BIP","Méharistes du Désert","Char Abrams M1A1","F-16 Viper"] },
+  { id:"DZ", name:"Algérie", flag:"🇩🇿", x:688, y:436, u:["Fantassin Sahara","Tireur Aurès","Parachutiste RPC","Méharistes Touareg","Char T-90SA","Chasseur Su-30MKA"] },
+  { id:"TN", name:"Tunisie", flag:"🇹🇳", x:717, y:408, u:["Garde Carthage","Tireur Dorsal","Forces Spéciales GFS","Spahis Tunisiens","Char M60A3","Escadre F-5"] },
+  { id:"LY", name:"Libye", flag:"🇱🇾", x:762, y:442, u:["Patrouille Désert","Tireur Fezzan","Saboteur Syrte","Brigade Mécanisée","Char T-72","Chasseur MiG-25"] },
+  { id:"EG", name:"Égypte", flag:"🇪🇬", x:832, y:444, u:["Garde du Nil","Archer Nubien","Unité Sa'ka","Cavalerie Mamelouk","Char Abrams Égypte","Escadre Rafale EM"] },
+  { id:"SN", name:"Sénégal", flag:"🇸🇳", x:607, y:506, u:["Tirailleur Sénégalais","Tireur Casamance","Commando Parachutiste","Spahis Sénégalais","Blindé Bastion","Escadre Atlantique"] },
+  { id:"CI", name:"Côte d'Ivoire", flag:"🇨🇮", x:667, y:532, u:["Fantassin Lagune","Tireur Forêt","Forces Spéciales","Escadron Blindé","Blindé Mamba","Hélicoptère Mi-24"] },
+  { id:"NG", name:"Nigeria", flag:"🇳🇬", x:732, y:520, u:["Fantassin Savane","Tireur Niger","Patrouille Delta","Cavalerie Sokoto","Char VT-4","Chasseur JF-17"] },
+  { id:"SD", name:"Soudan", flag:"🇸🇩", x:836, y:516, u:["Fantassin Nubie","Tireur Kordofan","Saboteur Nil Bleu","Cavaliers du Désert","Char Al-Bashir","Chasseur MiG-29"] },
+  { id:"ET", name:"Éthiopie", flag:"🇪🇹", x:892, y:566, u:["Garde des Plateaux","Tireur Abyssin","Division Commando","Cavalerie Oromo","Char T-72B","Chasseur Su-27"] },
+  { id:"CD", name:"RD Congo", flag:"🇨🇩", x:786, y:602, u:["Fantassin Équateur","Tireur Virunga","Commando Hibou","Brigade Rapide","Char T-72M1","Hélicoptère Mi-24"] },
+  { id:"KE", name:"Kenya", flag:"🇰🇪", x:860, y:608, u:["Ranger Savane","Tireur Rift Valley","Forces Spéciales","Patrouille Masaï","Char Vickers Mk3","Chasseur F-5E"] },
+  { id:"AO", name:"Angola", flag:"🇦🇴", x:775, y:678, u:["Fantassin Kwanza","Tireur Namibe","Commando Angola","Escadron Rapide","Char T-72","Chasseur Su-30K"] },
+  { id:"ZA", name:"Afrique du Sud", flag:"🇿🇦", x:788, y:758, u:["Fantassin Veldt","Tireur Karoo","Recces","Blindé Ratel","Char Olifant Mk2","Hélicoptère Rooivalk"] },
+  { id:"MG", name:"Madagascar", flag:"🇲🇬", x:902, y:726, u:["Fantassin Île Rouge","Tireur Tsingy","Garde Côtière","Éclaireurs Hautes Terres","Blindé Léger","Patrouilleur Indien"] },
 
-      function tryPutRtdbProfile(urls, idx, bodyObj) {
-        if (idx >= urls.length) return Promise.resolve(false);
-        return fetch(urls[idx], {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(bodyObj)
-        })
-          .then(function (r) {
-            if (r.ok) return true;
-            return tryPutRtdbProfile(urls, idx + 1, bodyObj);
-          })
-          .catch(function () {
-            return tryPutRtdbProfile(urls, idx + 1, bodyObj);
-          });
-      }
+  { id:"TR", name:"Turquie", flag:"🇹🇷", x:878, y:362, u:["Janissaire Moderne","Tireur Anatolie","Commando Bordo Bereli","Sipahi Blindés","Char Altay","Chasseur Kaan"] },
+  { id:"IQ", name:"Irak", flag:"🇮🇶", x:925, y:408, u:["Garde Mésopotamie","Tireur Tigre","Division Or","Cavalerie Euphrate","Char M1A1 Abrams","F-16IQ"] },
+  { id:"SA", name:"Arabie Saoudite", flag:"🇸🇦", x:918, y:468, u:["Garde Royale Désert","Tireur Hedjaz","Forces Spéciales","Cavaliers du Nejd","Char M1A2S","F-15SA Strike Eagle"] },
+  { id:"AE", name:"Émirats Arabes Unis", flag:"🇦🇪", x:977, y:488, u:["Garde Présidentielle","Tireur Rub al-Khali","Commando Golfe","Blindé Rabdan","Char Leclerc Émirats","Mirage 2000-9"] },
+  { id:"IR", name:"Iran", flag:"🇮🇷", x:995, y:408, u:["Fantassin Zagros","Tireur Perse","Unité Drone Shahed","Cavalerie Immortelle","Char Karrar","Chasseur F-14"] },
+  { id:"KZ", name:"Kazakhstan", flag:"🇰🇿", x:990, y:268, u:["Fantassin Altaï","Archer des Steppes","Brigade Assaut","Cavaliers Nomades","Char T-72B3","Chasseur Su-30SM"] },
+  { id:"RU", name:"Russie", flag:"🇷🇺", x:1130, y:168, u:["Fantassin Sibérien","Tireur Taïga","Spetsnaz","Cosaques Blindés","Char T-90M Proryv","Chasseur Su-57 Felon"] },
+  { id:"PK", name:"Pakistan", flag:"🇵🇰", x:1062, y:434, u:["Infanterie Karakorum","Tireur Indus","Commando SSG","Lanciers du Pendjab","Char Al-Khalid","Chasseur JF-17"] },
+  { id:"IN", name:"Inde", flag:"🇮🇳", x:1132, y:482, u:["Fantassin Gurkha","Tireur Himalaya","Para SF","Cavalerie Rajput","Char Arjun Mk1A","Chasseur Tejas Mk2"] },
+  { id:"CN", name:"Chine", flag:"🇨🇳", x:1176, y:340, u:["Infanterie APL","Arbalétrier Impérial","Dragons Nocturnes","Cavalerie Blindée","Char Type 99A","Chasseur Furtif J-20"] },
+  { id:"MN", name:"Mongolie", flag:"🇲🇳", x:1180, y:248, u:["Éclaireur Gobi","Archer Monté","Saboteur des Steppes","Horde d'Or","Char T-72A","Intercepteur Nord"] },
+  { id:"TH", name:"Thaïlande", flag:"🇹🇭", x:1208, y:495, u:["Garde Royale Siam","Tireur Mékong","Marines Golfe","Éléphants Blindés","Char VT-4","Chasseur Gripen"] },
+  { id:"VN", name:"Vietnam", flag:"🇻🇳", x:1255, y:495, u:["Fantassin Jungle","Tireur Bambou","Commando Dac Cong","Éclaireurs Tonkin","Char T-90S","Chasseur Su-30MK2V"] },
+  { id:"KR", name:"Corée du Sud", flag:"🇰🇷", x:1309, y:335, u:["Marines Coréens","Archer Hwarang","Forces Spéciales 707","Cavalerie Tigre","Char K2 Black Panther","Chasseur KF-21"] },
+  { id:"JP", name:"Japon", flag:"🇯🇵", x:1364, y:340, u:["Force Autodéfense","Archer Kyudo","Shinobi Moderne","Samouraï Blindé","Char Type 10","Chasseur F-2 Viper"] },
 
-      function applyLoadedProfileData(data, username, pin, silent) {
-        var parsed = JSON.parse(data.payloadJson);
-        applySaveObject(parsed);
-        state.cloud.username = username.trim();
-        state.cloud.pin = pin.trim();
-        state.cloud.connected = true;
-        processOfflineProgress();
-        updateNavigationUI();
-        refreshMapStyles();
-        renderRoutesOnMap();
-        renderCampaignsPanel();
-        if (state.multi.connected) connectToMultiplayerRoom(state.multi.roomCode);
-        if (state.activeTab === 'country' && state.ownedIds.length > 0) renderCountryView();
-        else renderMapCard();
-        updateCloudHudStatus();
-        if (!silent) pushCloudSave(true);
-      }
+  { id:"PH", name:"Philippines", flag:"🇵🇭", x:1316, y:482, u:["Scout Ranger","Tireur Archipel","Marines Luzon","Patrouille Rapide","Blindé Guarani","Chasseur FA-50"] },
+  { id:"ID", name:"Indonésie", flag:"🇮🇩", x:1268, y:586, u:["Commando Kopassus","Tireur Sumatra","Marines Archipel","Cavalerie Java","Blindé Harimau","Escadre Rafale ID"] },
+  { id:"AU", name:"Australie", flag:"🇦🇺", x:1320, y:705, u:["Fantassin ANZAC","Tireur Outback","SASR","Light Horse","Char M1A2 SEPv3","Chasseur F-35A RAAF"] },
+  { id:"NZ", name:"Nouvelle-Zélande", flag:"🇳🇿", x:1458, y:790, u:["Fantassin Kiwi","Guerrier Maori","NZSAS","Éclaireurs Sud","Blindé NZLAV","Patrouilleur Poseidon"] }
+];
 
-      function pullCloudSave(username, pin, silent) {
-        return new Promise(function (resolve) {
-          var urls = getRtdbProfileUrls(username, pin);
-          var ref = getCloudDocRef(username, pin);
+const COUNTRIES = [
+  ...RAW_COUNTRIES.map(c => ({
+    id: c.id, name: c.name, flag: c.flag, x: c.x, y: c.y,
+    troops: c.u.map((item, i) => ({ ...TIER_DEFS[i], name: item.n, desc: item.d }))
+  })),
+  ...EXTRA_COUNTRIES.map(c => ({
+    id: c.id, name: c.name, flag: c.flag, x: c.x, y: c.y,
+    troops: c.u.map((uname, i) => ({
+      ...TIER_DEFS[i],
+      name: uname,
+      desc: `Unité exclusive d'élite (${TIER_DEFS[i].cat.toLowerCase()}) de ${c.name}.`
+    }))
+  }))
+];
 
-          // Essai 1 : Realtime Database (Europe puis US)
-          tryFetchRtdbProfile(urls, 0).then(function (rtData) {
-            if (rtData && rtData.payloadJson) {
-              applyLoadedProfileData(rtData, username, pin, silent);
-              resolve({ ok: true });
-              return;
-            }
+const COUNTRY_MAP = Object.fromEntries(COUNTRIES.map(c => [c.id, c]));
 
-            // Essai 2 : Firestore
-            if (ref) {
-              ref.get().then(function (snap) {
-                if (snap && snap.exists) {
-                  var fsData = snap.data();
-                  if (fsData && fsData.payloadJson) {
-                    applyLoadedProfileData(fsData, username, pin, silent);
-                    resolve({ ok: true });
-                    return;
-                  }
-                }
-                resolve({ ok: false, reason: 'Aucune partie trouvée pour ce Pseudo + PIN. Clique sur « Nouvelle partie » pour créer ce profil !' });
-              }).catch(function (err) {
-                resolve({ ok: false, reason: 'Base non accessible (' + (err && err.code ? err.code : 'vérifie les règles Firebase en mode test') + ').' });
-              });
-            } else {
-              resolve({ ok: false, reason: 'Aucune partie trouvée pour ce Pseudo + PIN.' });
-            }
-          });
-        });
-      }
+let state = {
+  gold: 100,
+  knowledge: 0,
+  owned: {},
+  selectedId: null,
+  activeTab: "gestion",
+  genie: { busy: false, endTime: 0, rewardGold: 0, rewardKnow: 0, label: "", expeditionsDone: 0 },
+  marches: [],
+  lastTick: Date.now()
+};
 
-      function registerCloudSave(username, pin) {
-        return new Promise(function (resolve) {
-          var urls = getRtdbProfileUrls(username, pin);
-          var ref = getCloudDocRef(username, pin);
+let authUser = null;
+let authMode = "login";
+let db = null;
+let roomCode = null;
+let roomListener = null;
+let remoteOwners = {};
+let searchQuery = "";
 
-          tryFetchRtdbProfile(urls, 0).then(function (existingRt) {
-            if (existingRt && existingRt.payloadJson) {
-              resolve({ ok: false, reason: 'Ce Pseudo + PIN existe déjà ! Clique sur « Reprendre ma partie ».' });
-              return;
-            }
+let view = { x: 0, y: 0, scale: 1 };
+let dragging = false, dragMoved = false;
+let downPt = { x: 0, y: 0 }, startPt = { x: 0, y: 0 };
+let pinchStartDist = 0, pinchStartScale = 1;
+let lastTapTime = 0;
 
-            state.cloud.username = username.trim();
-            state.cloud.pin = pin.trim();
-            state.cloud.connected = true;
+function applyTransform() {
+  const vp = document.getElementById("viewport");
+  if (vp) vp.setAttribute("transform", `translate(${view.x},${view.y}) scale(${view.scale})`);
+}
+function zoomMap(factor) {
+  view.scale = Math.max(0.85, Math.min(5.0, view.scale * factor));
+  applyTransform();
+}
+function resetZoom() {
+  view = { x: 0, y: 0, scale: 1 };
+  applyTransform();
+}
 
-            var saveBody = {
-              username: state.cloud.username,
-              updatedAt: Date.now(),
-              payloadJson: JSON.stringify(buildSaveObject())
-            };
+function triggerCountryTap(id) {
+  const now = Date.now();
+  if (now - lastTapTime < 220) return;
+  lastTapTime = now;
+  onCountryClick(id);
+}
 
-            tryPutRtdbProfile(urls, 0, saveBody).then(function (rtOk) {
-              if (rtOk) {
-                pushCloudSave(true);
-                updateCloudHudStatus();
-                resolve({ ok: true });
-                return;
-              }
-              if (ref) {
-                ref.get().then(function (snap) {
-                  if (snap && snap.exists) {
-                    resolve({ ok: false, reason: 'Ce Pseudo + PIN existe déjà ! Clique sur « Reprendre ma partie ».' });
-                    return;
-                  }
-                  ref.set(saveBody).then(function () {
-                    pushCloudSave(true);
-                    updateCloudHudStatus();
-                    resolve({ ok: true });
-                  }).catch(function (err) {
-                    resolve({ ok: false, reason: 'Active Realtime Database ou Firestore en mode test dans Firebase (' + (err && err.code ? err.code : 'permission') + ').' });
-                  });
-                }).catch(function (err) {
-                  resolve({ ok: false, reason: 'Active Realtime Database ou Firestore en mode test dans Firebase (' + (err && err.code ? err.code : 'permission') + ').' });
-                });
-              } else {
-                resolve({ ok: false, reason: 'Impossible de joindre Firebase. Vérifie ta connexion.' });
-              }
-            });
-          });
-        });
-      }
+function initMapInteractions() {
+  const svg = document.getElementById("world-svg");
 
-      function registerCloudSave(username, pin) {
-        return new Promise(function (resolve) {
-          var ref = getCloudDocRef(username, pin);
-          if (!ref || !fbUser) {
-            resolve({ ok: false, reason: 'Connexion au serveur en cours, réessaie dans 2 secondes.' });
-            return;
-          }
-          getDoc(ref).then(function (snap) {
-            if (snap.exists()) {
-              resolve({ ok: false, reason: 'Ce Pseudo + PIN existe déjà ! Choisis "Reprendre ma partie" ou un autre PIN.' });
-              return;
-            }
-            state.cloud.username = username.trim();
-            state.cloud.pin = pin.trim();
-            state.cloud.connected = true;
-            pushCloudSave(true);
-            updateCloudHudStatus();
-            resolve({ ok: true });
-          }).catch(function () {
-            resolve({ ok: false, reason: 'Impossible de créer le profil pour le moment.' });
-          });
-        });
-      }
+  // Souris (Desktop)
+  svg.addEventListener("mousedown", e => {
+    if (e.button !== 0) return;
+    dragging = true;
+    dragMoved = false;
+    downPt = { x: e.clientX, y: e.clientY };
+    startPt = { x: e.clientX - view.x, y: e.clientY - view.y };
+  });
+  window.addEventListener("mousemove", e => {
+    if (!dragging) return;
+    if (Math.hypot(e.clientX - downPt.x, e.clientY - downPt.y) > 8) dragMoved = true;
+    view.x = e.clientX - startPt.x;
+    view.y = e.clientY - startPt.y;
+    applyTransform();
+  });
+  window.addEventListener("mouseup", () => { dragging = false; });
 
-      function updateCloudHudStatus() {
-        var btn = document.getElementById('btn-cloud-modal');
-        var lbl = document.getElementById('cloud-status-text');
-        var activeLbl = document.getElementById('cloud-active-user-label');
-        var actionsRow = document.getElementById('cloud-connected-actions');
-        if (!btn || !lbl) return;
+  // Tactile natif iOS / Android (1 doigt = déplacement + tap, 2 doigts = pinch-to-zoom)
+  svg.addEventListener("touchstart", e => {
+    if (e.touches.length === 1) {
+      const t = e.touches[0];
+      dragging = true;
+      dragMoved = false;
+      downPt = { x: t.clientX, y: t.clientY };
+      startPt = { x: t.clientX - view.x, y: t.clientY - view.y };
+    } else if (e.touches.length === 2) {
+      dragging = false;
+      dragMoved = true;
+      pinchStartDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      pinchStartScale = view.scale;
+    }
+  }, { passive: true });
 
-        if (state.cloud.connected && state.cloud.username) {
-          btn.classList.add('cloud-active');
-          var d = new Date();
-          var hh = (d.getHours() < 10 ? '0' : '') + d.getHours();
-          var mm = (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
-          lbl.textContent = state.cloud.username + ' (' + hh + ':' + mm + ')';
-          if (activeLbl) activeLbl.textContent = '✓ Connecté : ' + state.cloud.username;
-          if (actionsRow) actionsRow.style.display = 'flex';
-        } else {
-          btn.classList.remove('cloud-active');
-          lbl.textContent = 'Sauvegarde Auto';
-          if (actionsRow) actionsRow.style.display = 'none';
-        }
-      }
+  svg.addEventListener("touchmove", e => {
+    if (e.touches.length === 1 && dragging) {
+      e.preventDefault();
+      const t = e.touches[0];
+      if (Math.hypot(t.clientX - downPt.x, t.clientY - downPt.y) > 12) dragMoved = true;
+      view.x = t.clientX - startPt.x;
+      view.y = t.clientY - startPt.y;
+      applyTransform();
+    } else if (e.touches.length === 2 && pinchStartDist > 0) {
+      e.preventDefault();
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      view.scale = Math.max(0.85, Math.min(5.0, pinchStartScale * (dist / pinchStartDist)));
+      applyTransform();
+    }
+  }, { passive: false });
 
-      function processOfflineProgress() {
-        var elapsedSec = Math.max(0, Math.floor((Date.now() - state.lastSavedAt) / 1000));
-        var msgParts = [];
+  svg.addEventListener("touchend", e => {
+    if (e.touches.length === 0) {
+      dragging = false;
+      pinchStartDist = 0;
+    }
+  }, { passive: true });
 
-        if (elapsedSec >= 5 && state.ownedIds.length > 0) {
-          var cappedSec = Math.min(elapsedSec, 172800);
-          var totalOfflineGold = 0;
-          for (var i = 0; i < state.ownedIds.length; i++) {
-            var c = getCountryById(state.ownedIds[i]);
-            if (c) {
-              var cs = ensureCountryState(c);
-              var earned = cappedSec * cs.mines * MINE_RATE;
-              cs.gold += earned;
-              totalOfflineGold += earned;
-            }
-          }
-          if (totalOfflineGold > 0) {
-            msgParts.push('+' + formatFr(totalOfflineGold) + ' or récolté hors-ligne (' + formatDuration(cappedSec) + ')');
-          }
-        }
+  svg.addEventListener("wheel", e => {
+    e.preventDefault();
+    zoomMap(e.deltaY < 0 ? 1.14 : 0.88);
+  }, { passive: false });
 
-        for (var j = 0; j < state.ownedIds.length; j++) {
-          var oc = getCountryById(state.ownedIds[j]);
-          if (oc) {
-            var ocs = ensureCountryState(oc);
-            if (ocs.genius.activeMission && Date.now() >= ocs.genius.activeMission.startedAt + ocs.genius.activeMission.durationMs) {
-              completeGeniusMission(oc, true);
-              msgParts.push('Le Génie de ' + oc.name + ' est revenu !');
-            }
-          }
-        }
-
-        var resolvedCount = resolveArrivedCampaigns(true);
-        if (resolvedCount > 0) {
-          msgParts.push(resolvedCount + ' offensive(s) militaire(s) arrivée(s) à destination !');
-        }
-
-        if (msgParts.length > 0) {
-          var toast = document.getElementById('offline-toast');
-          var txt = document.getElementById('offline-toast-text');
-          if (toast && txt) {
-            txt.textContent = '🎉 ' + msgParts.join(' · ');
-            toast.style.display = 'flex';
-          }
-          pushCloudSave(true);
-        }
-      }
-
-      // =========================================================================
-      // 7. RENDU DE LA CARTE TOPOGRAPHIQUE SVG & INTERACTIONS TACTILES
-      // =========================================================================
-      var worldMap = document.getElementById('worldMap');
-      var viewBox = { x: 0, y: 0, w: MAP_W, h: MAP_H };
-
-      function applyViewBox() {
-        viewBox.x = Math.max(-120, Math.min(MAP_W - viewBox.w + 120, viewBox.x));
-        viewBox.y = Math.max(-80, Math.min(MAP_H - viewBox.h + 80, viewBox.y));
-        worldMap.setAttribute('viewBox', viewBox.x.toFixed(1) + ' ' + viewBox.y.toFixed(1) + ' ' + viewBox.w.toFixed(1) + ' ' + viewBox.h.toFixed(1));
-      }
-
-      function zoomAtCenter(factor) {
-        var oldW = viewBox.w;
-        var oldH = viewBox.h;
-        viewBox.w = Math.max(280, Math.min(MAP_W, viewBox.w * factor));
-        viewBox.h = viewBox.w * (MAP_H / MAP_W);
-        viewBox.x += (oldW - viewBox.w) * 0.5;
-        viewBox.y += (oldH - viewBox.h) * 0.5;
-        applyViewBox();
-      }
-
-      function buildMapSvg() {
-        var defs =
-          '<defs>' +
-            '<radialGradient id="oceanGrad" cx="50%" cy="45%" r="65%">' +
-              '<stop offset="0%" stop-color="#1d4ed8"/>' +
-              '<stop offset="55%" stop-color="#0f3d68"/>' +
-              '<stop offset="100%" stop-color="#08203a"/>' +
-            '</radialGradient>' +
-          '</defs>';
-
-        var bg = '<rect x="-200" y="-200" width="1840" height="1230" fill="url(#oceanGrad)"/>';
-        var grid = '<g stroke="#38bdf8" stroke-opacity="0.14" stroke-width="1">';
-        for (var gx = 0; gx <= MAP_W; gx += 120) {
-          grid += '<line x1="' + gx + '" y1="0" x2="' + gx + '" y2="' + MAP_H + '"/>';
-        }
-        for (var gy = 0; gy <= MAP_H; gy += 118) {
-          grid += '<line x1="0" y1="' + gy + '" x2="' + MAP_W + '" y2="' + gy + '"/>';
-        }
-        grid += '</g>';
-
-        var shelves = '<g opacity="0.26">';
-        var shadows = '<g transform="translate(4, 6)" opacity="0.35">';
-        var shapes = '<g id="countries-layer">';
-        var labels = '<g id="labels-layer">';
-        var owners = '<g id="owners-layer" pointer-events="none">';
-
-        for (var i = 0; i < COUNTRIES.length; i++) {
-          var c = COUNTRIES[i];
-          var fill = BIOME_COLORS[c.biome] || BIOME_COLORS.tempere;
-          shelves += '<path d="' + c.d + '" fill="#38bdf8" stroke="#38bdf8" stroke-width="12" stroke-linejoin="round"/>';
-          shadows += '<path d="' + c.d + '" fill="#020617"/>';
-          shapes += '<path class="country-shape" data-id="' + c.id + '" d="' + c.d + '" fill="' + fill + '"/>';
-          labels += '<text class="country-label" data-label="' + c.id + '" x="' + c.cx + '" y="' + c.cy + '">' + c.name + '</text>';
-          owners += '<text class="owner-badge-text" data-owner-label="' + c.id + '" x="' + c.cx + '" y="' + (c.cy + 13) + '"></text>';
-        }
-
-        shelves += '</g>';
-        shadows += '</g>';
-        shapes += '</g>';
-        labels += '</g>';
-        owners += '</g>';
-
-        var routesLayer = '<g id="routes-map-layer" pointer-events="none"></g>';
-        worldMap.innerHTML = defs + bg + grid + shelves + shadows + shapes + labels + owners + routesLayer;
-        refreshMapStyles();
-        renderRoutesOnMap();
-      }
-
-      function refreshMapStyles() {
-        var geniusTargets = {};
-        for (var o = 0; o < state.ownedIds.length; o++) {
-          var oc = getCountryById(state.ownedIds[o]);
-          if (oc) {
-            var ocs = ensureCountryState(oc);
-            if (ocs.genius.activeMission) geniusTargets[ocs.genius.activeMission.targetId] = true;
-          }
-        }
-        var remoteOwners = getRemoteCountryOwners();
-
-        var paths = worldMap.querySelectorAll('.country-shape');
-        for (var i = 0; i < paths.length; i++) {
-          var id = paths[i].getAttribute('data-id');
-          var owned = isCountryOwned(id);
-          var remoteP = remoteOwners[id];
-          paths[i].classList.toggle('selected', id === state.selectedId);
-          paths[i].classList.toggle('owned', owned);
-          paths[i].classList.toggle('enemy-owned', Boolean(remoteP && !owned));
-          paths[i].classList.toggle('genius-target', Boolean(geniusTargets[id] && !owned));
-        }
-
-        var texts = worldMap.querySelectorAll('.country-label');
-        for (var j = 0; j < texts.length; j++) {
-          var lid = texts[j].getAttribute('data-label');
-          var c = getCountryById(lid);
-          if (c) {
-            var prefix = isCountryOwned(lid) ? '★ ' : (geniusTargets[lid] ? '🧠 ' : '');
-            texts[j].textContent = prefix + c.name;
-          }
-        }
-
-        var ownerTexts = worldMap.querySelectorAll('.owner-badge-text');
-        for (var k = 0; k < ownerTexts.length; k++) {
-          var oid = ownerTexts[k].getAttribute('data-owner-label');
-          if (isCountryOwned(oid) && state.multi.connected) {
-            ownerTexts[k].textContent = '(' + (state.cloud.username || 'Toi') + ')';
-          } else if (remoteOwners[oid]) {
-            ownerTexts[k].textContent = '⚔️ ' + remoteOwners[oid].name;
-          } else {
-            ownerTexts[k].textContent = '';
-          }
-        }
-      }
-
-      function renderRoutesOnMap() {
-        var layer = document.getElementById('routes-map-layer');
-        if (!layer) return;
-        var html = '';
-
-        // Trajets des Génies
-        for (var i = 0; i < state.ownedIds.length; i++) {
-          var owned = getCountryById(state.ownedIds[i]);
-          if (!owned) continue;
-          var cs = ensureCountryState(owned);
-          var mission = cs.genius.activeMission;
-          if (mission && mission.targetId && mission.targetId !== owned.id) {
-            var dest = getCountryById(mission.targetId);
-            if (dest) {
-              var ratio = Math.max(0, Math.min(1, (Date.now() - mission.startedAt) / mission.durationMs));
-              var mx = owned.cx + (dest.cx - owned.cx) * ratio;
-              var my = owned.cy + (dest.cy - owned.cy) * ratio;
-              html +=
-                '<line x1="' + owned.cx + '" y1="' + owned.cy + '" x2="' + dest.cx + '" y2="' + dest.cy + '" stroke="#e879f9" stroke-width="2.5" stroke-dasharray="6 5"/>' +
-                '<circle cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="10" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>' +
-                '<text x="' + mx.toFixed(1) + '" y="' + (my + 4).toFixed(1) + '" text-anchor="middle" font-size="11">🧠</text>';
-            }
-          }
-        }
-
-        // Trajets des campagnes militaires en cours
-        for (var c = 0; c < state.campaigns.length; c++) {
-          var camp = state.campaigns[c];
-          var fromC = getCountryById(camp.fromId);
-          var toC = getCountryById(camp.toId);
-          if (fromC && toC) {
-            var cRatio = Math.max(0, Math.min(1, (Date.now() - camp.startedAt) / camp.durationMs));
-            var cx = fromC.cx + (toC.cx - fromC.cx) * cRatio;
-            var cy = fromC.cy + (toC.cy - fromC.cy) * cRatio;
-            html +=
-              '<line x1="' + fromC.cx + '" y1="' + fromC.cy + '" x2="' + toC.cx + '" y2="' + toC.cy + '" stroke="#ef4444" stroke-width="3" stroke-dasharray="8 4"/>' +
-              '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="11" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>' +
-              '<text x="' + cx.toFixed(1) + '" y="' + (cy + 4).toFixed(1) + '" text-anchor="middle" font-size="11">⚔️</text>';
-          }
-        }
-
-        layer.innerHTML = html;
-      }
-
-      // Contrôles souris & toucher (pan + pinch-to-zoom)
-      var drag = { active: false, moved: false, startX: 0, startY: 0, origX: 0, origY: 0 };
-      var pinch = { active: false, startDist: 0, startW: MAP_W, midRatioX: 0.5, midRatioY: 0.5 };
-
-      function getTouchDistance(t1, t2) {
-        var dx = t2.clientX - t1.clientX;
-        var dy = t2.clientY - t1.clientY;
-        return Math.sqrt(dx * dx + dy * dy);
-      }
-
-      worldMap.addEventListener('touchstart', function (e) {
-        if (e.touches && e.touches.length === 2) {
-          e.preventDefault();
-          drag.active = false;
-          pinch.active = true;
-          pinch.startDist = Math.max(10, getTouchDistance(e.touches[0], e.touches[1]));
-          pinch.startW = viewBox.w;
-          var rect = worldMap.getBoundingClientRect();
-          pinch.midRatioX = ((e.touches[0].clientX + e.touches[1].clientX) * 0.5 - rect.left) / Math.max(1, rect.width);
-          pinch.midRatioY = ((e.touches[0].clientY + e.touches[1].clientY) * 0.5 - rect.top) / Math.max(1, rect.height);
-        }
-      }, { passive: false });
-
-      worldMap.addEventListener('touchmove', function (e) {
-        if (pinch.active && e.touches && e.touches.length === 2) {
-          e.preventDefault();
-          var curDist = Math.max(10, getTouchDistance(e.touches[0], e.touches[1]));
-          var scale = pinch.startDist / curDist;
-          var oldW = viewBox.w;
-          var oldH = viewBox.h;
-          viewBox.w = Math.max(280, Math.min(MAP_W, pinch.startW * scale));
-          viewBox.h = viewBox.w * (MAP_H / MAP_W);
-          viewBox.x += (oldW - viewBox.w) * pinch.midRatioX;
-          viewBox.y += (oldH - viewBox.h) * pinch.midRatioY;
-          applyViewBox();
-        }
-      }, { passive: false });
-
-      worldMap.addEventListener('touchend', function (e) {
-        if (!e.touches || e.touches.length < 2) pinch.active = false;
-      });
-
-      worldMap.addEventListener('pointerdown', function (e) {
-        if (pinch.active) return;
-        drag.active = true;
-        drag.moved = false;
-        drag.startX = e.clientX;
-        drag.startY = e.clientY;
-        drag.origX = viewBox.x;
-        drag.origY = viewBox.y;
-      });
-
-      window.addEventListener('pointermove', function (e) {
-        if (!drag.active || pinch.active) return;
-        var dx = e.clientX - drag.startX;
-        var dy = e.clientY - drag.startY;
-        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) drag.moved = true;
-        if (drag.moved) {
-          var rect = worldMap.getBoundingClientRect();
-          viewBox.x = drag.origX - dx * (viewBox.w / Math.max(1, rect.width));
-          viewBox.y = drag.origY - dy * (viewBox.h / Math.max(1, rect.height));
-          applyViewBox();
-        }
-      });
-
-      window.addEventListener('pointerup', function (e) {
-        if (!drag.active) return;
-        var wasMoved = drag.moved;
-        drag.active = false;
-        if (!wasMoved && !pinch.active && e.target && e.target.classList && e.target.classList.contains('country-shape')) {
-          state.selectedId = e.target.getAttribute('data-id');
-          refreshMapStyles();
-          renderMapCard();
-        }
-      });
-
-      worldMap.addEventListener('wheel', function (e) {
+  // Événements directs sur chaque pays (touchend + click pour compatibilité iOS Safari garantie)
+  COUNTRIES.forEach(c => {
+    const el = document.getElementById("shape-" + c.id);
+    if (!el) return;
+    el.addEventListener("touchend", e => {
+      if (!dragMoved) {
         e.preventDefault();
-        zoomAtCenter(e.deltaY > 0 ? 1.15 : 0.87);
-      }, { passive: false });
+        triggerCountryTap(c.id);
+      }
+    }, { passive: false });
+    el.addEventListener("click", () => {
+      if (!dragMoved) triggerCountryTap(c.id);
+    });
+  });
+}
 
-      document.getElementById('btn-zoom-in').addEventListener('click', function () { zoomAtCenter(0.8); });
-      document.getElementById('btn-zoom-out').addEventListener('click', function () { zoomAtCenter(1.25); });
-      document.getElementById('btn-zoom-reset').addEventListener('click', function () {
-        viewBox = { x: 0, y: 0, w: MAP_W, h: MAP_H };
-        applyViewBox();
-      });
+function onCountryClick(id) {
+  if (Object.keys(state.owned).length === 0) {
+    state.owned[id] = { level: 1, mines: 2, farms: 1, troops: [1, 0, 0, 0, 0, 0] };
+    state.selectedId = id;
+    saveGame();
+  } else {
+    state.selectedId = id;
+  }
+  if (state.activeTab === "list") switchTab("gestion");
+  else renderAll();
+}
 
-      // =========================================================================
-      // 8. CABINET DU GÉNIE & EXPÉDITIONS CHRONOMÉTRÉES
-      // =========================================================================
-      function startGeniusMission(country, missionId, targetCountryId) {
-        var cs = ensureCountryState(country);
-        if (cs.genius.activeMission) return;
-        var mDef = null;
-        for (var i = 0; i < GENIUS_MISSIONS.length; i++) {
-          if (GENIUS_MISSIONS[i].id === missionId) mDef = GENIUS_MISSIONS[i];
-        }
-        if (!mDef || cs.gold < mDef.cost) return;
-        cs.gold -= mDef.cost;
+function getIncomePerSec() {
+  let inc = 0;
+  Object.values(state.owned).forEach(p => { inc += (p.mines || 0) * 2; });
+  return inc;
+}
+function getTotalFarms() {
+  let f = 0;
+  Object.values(state.owned).forEach(p => { f += (p.farms || 0); });
+  return f;
+}
+function getTotalSoldiers() {
+  let s = 0;
+  Object.values(state.owned).forEach(p => {
+    (p.troops || []).forEach(n => s += n);
+  });
+  return s;
+}
+function getMaxSoldiers() {
+  return Math.floor(getTotalFarms() * 2.5);
+}
+function getCountryPower(id) {
+  const c = COUNTRY_MAP[id];
+  const p = state.owned[id];
+  if (!c || !p) return 150;
+  let pow = p.level * 120;
+  p.troops.forEach((cnt, i) => {
+    pow += cnt * (c.troops[i].atk + c.troops[i].def);
+  });
+  return pow;
+}
 
-        var target = getCountryById(targetCountryId) || country;
-        var devBonus = mDef.foreign && target.dev >= 4 ? 25 : 0;
-        var gain = Math.floor(mDef.minGain + Math.random() * (mDef.maxGain - mDef.minGain + 1)) + devBonus;
+function renderMap() {
+  const labelsLayer = document.getElementById("labels-layer");
+  const marchesLayer = document.getElementById("marches-layer");
+  let labelsHtml = "";
+  let marchesHtml = "";
 
-        cs.genius.activeMission = {
-          missionId: mDef.id,
-          title: mDef.title,
-          targetId: target.id,
-          targetName: target.name,
-          startedAt: Date.now(),
-          durationMs: mDef.durationSec * 1000,
-          reward: gain
-        };
+  COUNTRIES.forEach(c => {
+    const shape = document.getElementById("shape-" + c.id);
+    if (!shape) return;
+    const isMine = !!state.owned[c.id];
+    const isEnemy = !isMine && !!remoteOwners[c.id];
+    shape.classList.toggle("mine", isMine);
+    shape.classList.toggle("enemy", isEnemy);
+    shape.classList.toggle("selected", state.selectedId === c.id);
 
-        cs.genius.logs.unshift('⏳ Ton Génie est parti pour : ' + mDef.title + (mDef.foreign ? ' (' + target.name + ')' : '') + '.');
-        if (cs.genius.logs.length > 6) cs.genius.logs.length = 6;
+    const ownerTag = isMine ? ` ★${state.owned[c.id].level}` : (isEnemy ? ` (${remoteOwners[c.id]})` : "");
+    labelsHtml += `<text class="country-label" x="${c.x}" y="${c.y}">${c.flag} ${c.name}${ownerTag}</text>`;
+  });
 
-        pushCloudSave(true);
-        updateHeaderHud();
-        refreshMapStyles();
-        renderRoutesOnMap();
-        if (state.activeTab === 'country') renderCountryView();
+  const now = Date.now();
+  state.marches.forEach(m => {
+    const a = COUNTRY_MAP[m.from];
+    const b = COUNTRY_MAP[m.to];
+    if (!a || !b) return;
+    const ratio = Math.max(0, Math.min(1, (now - m.startTime) / (m.endTime - m.startTime)));
+    const cx = a.x + (b.x - a.x) * ratio;
+    const cy = a.y + (b.y - a.y) * ratio;
+    marchesHtml += `<line class="march-line" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" />`;
+    marchesHtml += `<circle cx="${cx}" cy="${cy}" r="7" fill="#f59e0b" stroke="#fff" stroke-width="2" />`;
+  });
+
+  labelsLayer.innerHTML = labelsHtml;
+  marchesLayer.innerHTML = marchesHtml;
+
+  const hasStart = Object.keys(state.owned).length > 0;
+  document.getElementById("banner-status").textContent = hasStart
+    ? `🏴 Empire : ${Object.keys(state.owned).length}/72 pays • Sélection : ${COUNTRY_MAP[state.selectedId]?.flag || ""} ${COUNTRY_MAP[state.selectedId]?.name || ""}`
+    : "👆 Touche un pays sur la carte : il démarre gratuitement avec 2 mines d'or (+4 or/s), 1 ferme et 1 troupe";
+}
+
+function switchTab(t) {
+  state.activeTab = t;
+  ["gestion", "genie", "war", "list"].forEach(k => {
+    document.getElementById("tab-" + k).classList.toggle("active", k === t);
+  });
+  renderPanel();
+}
+
+function renderPanel() {
+  const box = document.getElementById("tab-content");
+
+  if (state.activeTab === "list") {
+    const filtered = COUNTRIES.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    box.innerHTML = `
+      <div class="white-card">
+        <div class="summary-row" style="margin-bottom:8px;">
+          <span>📋 Annuaire des 72 Pays</span>
+          <span class="tag-pill tag-green">${Object.keys(state.owned).length}/72 conquis</span>
+        </div>
+        <input class="search-input" type="text" placeholder="🔍 Rechercher un pays (ex: Groenland, France, Japon...)" value="${searchQuery}" oninput="searchQuery=this.value;renderPanel();" />
+        <div style="max-height:420px;overflow-y:auto;">
+          ${filtered.map(c => {
+            const mine = !!state.owned[c.id];
+            return `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;margin-top:6px;">
+                <div>
+                  <b style="font-size:13.5px;">${c.flag} ${c.name}</b>
+                  <div class="summary-sub" style="margin-top:2px;">${mine ? `✅ Contrôlé (Niv. ${state.owned[c.id].level})` : (remoteOwners[c.id] ? `🔴 ${remoteOwners[c.id]}` : "Territoire libre")}</div>
+                </div>
+                <button class="btn ${mine ? "green" : "ghost"}" style="padding:6px 11px;font-size:12px;" onclick="onCountryClick('${c.id}')">${mine ? "Gérer" : "Sélectionner"}</button>
+              </div>`;
+          }).join("")}
+        </div>
+      </div>`;
+    return;
+  }
+
+  const hasStart = Object.keys(state.owned).length > 0;
+  if (!hasStart) {
+    box.innerHTML = `
+      <div class="white-card">
+        <div class="summary-row"><span>Choisis ton pays de départ</span></div>
+        <div class="summary-sub">Touche un pays sur la carte (ou dans <b>📋 72 Pays</b>) : il démarre gratuitement avec <b>2 mines d'or (+4 or/s)</b>, <b>1 ferme</b> et <b>1 troupe</b>. À chaque achat, le prix de l'élément augmente.</div>
+      </div>`;
+    return;
+  }
+
+  const cid = state.selectedId || Object.keys(state.owned)[0];
+  const country = COUNTRY_MAP[cid];
+  const owned = state.owned[cid];
+
+  if (state.activeTab === "gestion") {
+    if (!owned) {
+      const originId = Object.keys(state.owned)[0];
+      const orig = COUNTRY_MAP[originId];
+      const dist = Math.round(Math.hypot(country.x - orig.x, country.y - orig.y));
+      const days = Math.max(1, Math.round(dist / 95));
+      const travelSec = days * 15;
+      box.innerHTML = `
+        <div class="white-card">
+          <div class="summary-row">
+            <span>${country.flag} ${country.name}</span>
+            <span class="tag-pill tag-gold">${remoteOwners[cid] ? "Joueur : " + remoteOwners[cid] : "Territoire neutre"}</span>
+          </div>
+          <div class="summary-sub">Distance depuis ${orig.flag} ${orig.name} : <b>${fmt(dist * 12)} km</b> • Trajet militaire : <b>${days} jour(s)</b>.</div>
+          <div class="summary-sub" style="margin-bottom:12px;">Troupes exclusives : <b>${country.troops[0].name}</b>, <b>${country.troops[4].name}</b>, <b>${country.troops[5].name}</b></div>
+          <button class="btn red" style="width:100%;" onclick="launchAttack('${originId}','${cid}',${days},${travelSec})">⚔️ Lancer une campagne d'annexion (${days} j)</button>
+        </div>`;
+      return;
+    }
+
+    const totalSoldiers = getTotalSoldiers();
+    const maxSoldiers = getMaxSoldiers();
+    const freeFood = Math.max(0, maxSoldiers - totalSoldiers);
+
+    /* CALCUL DES COÛTS MULTI-ACHAT (+1, +10, +100, MAX) POUR MINES & FERMES */
+    const mineBought = Math.max(0, owned.mines - 2);
+    const mineCapRem = MAX_INFRA - owned.mines;
+    const mineUnit = getMineUnitPrice(owned);
+    const mineC1 = calcSeriesCost(MINE_BASE, MINE_GROWTH, mineBought, Math.min(1, mineCapRem));
+    const mineC10 = calcSeriesCost(MINE_BASE, MINE_GROWTH, mineBought, Math.min(10, mineCapRem));
+    const mineC100 = calcSeriesCost(MINE_BASE, MINE_GROWTH, mineBought, Math.min(100, mineCapRem));
+    const mineMax = calcMaxAffordable(MINE_BASE, MINE_GROWTH, mineBought, state.gold, mineCapRem);
+
+    const farmBought = Math.max(0, owned.farms - 1);
+    const farmCapRem = MAX_INFRA - owned.farms;
+    const farmUnit = getFarmUnitPrice(owned);
+    const farmC1 = calcSeriesCost(FARM_BASE, FARM_GROWTH, farmBought, Math.min(1, farmCapRem));
+    const farmC10 = calcSeriesCost(FARM_BASE, FARM_GROWTH, farmBought, Math.min(10, farmCapRem));
+    const farmC100 = calcSeriesCost(FARM_BASE, FARM_GROWTH, farmBought, Math.min(100, farmCapRem));
+    const farmMax = calcMaxAffordable(FARM_BASE, FARM_GROWTH, farmBought, state.gold, farmCapRem);
+
+    const lvlCosts = getCountryLevelCosts(owned.level);
+    const canLvl = owned.level < 5 && state.gold >= lvlCosts.gold && state.knowledge >= lvlCosts.know;
+
+    /* CARTES DES 6 TROUPES EXCLUSIVES DU PAYS */
+    const troopsHtml = country.troops.map((tr, idx) => {
+      const count = owned.troops[idx] || 0;
+      const lockedByLevel = owned.level < tr.reqLvl;
+      const bought = Math.max(0, count - (idx === 0 ? 1 : 0));
+      const unitPrice = getTroopUnitPrice(owned, idx);
+
+      if (lockedByLevel) {
+        return `
+          <div class="white-card">
+            <div class="troop-header">
+              <div class="troop-icon">${tr.icon}</div>
+              <div>
+                <span class="tag-cat ${tr.cls}">${tr.cat}</span>
+                <div style="font-size:17px;font-weight:900;margin-top:3px;">${tr.name}</div>
+                <div style="font-size:13px;font-weight:800;color:#2563eb;">Débloqué au Niveau ${tr.reqLvl}</div>
+              </div>
+            </div>
+            <div class="summary-sub" style="margin-top:10px;">${tr.desc}</div>
+            <div class="stat-chips">
+              <span class="stat-chip">PV : ${fmt(tr.hp)}</span>
+              <span class="stat-chip">Attaque : ${fmt(tr.atk)}</span>
+              <span class="stat-chip">Défense : ${fmt(tr.def)}</span>
+              <span class="stat-chip">Coût : ${fmt(unitPrice)} or</span>
+              <span class="stat-chip">1 nourriture</span>
+            </div>
+            <div class="lock-bar">🔒 Requiert Développement Niveau ${tr.reqLvl}</div>
+          </div>`;
       }
 
-      function completeGeniusMission(country, silent) {
-        var cs = ensureCountryState(country);
-        var m = cs.genius.activeMission;
-        if (!m) return;
-        var gain = Number(m.reward) || 10;
-        cs.knowledge += gain;
-        cs.totalKnowledgeEarned += gain;
-        cs.genius.activeMission = null;
-        cs.genius.logs.unshift('✅ Mission terminée (' + (m.title || 'Expédition') + ') : +' + gain + ' 🧠 Connaissances acquises !');
-        if (cs.genius.logs.length > 6) cs.genius.logs.length = 6;
+      const c1 = calcSeriesCost(tr.baseCost, tr.growth, bought, 1);
+      const c10 = calcSeriesCost(tr.baseCost, tr.growth, bought, 10);
+      const c100 = calcSeriesCost(tr.baseCost, tr.growth, bought, 100);
+      const maxInfo = calcMaxAffordable(tr.baseCost, tr.growth, bought, state.gold, freeFood);
+      const maxQty = maxInfo.count > 0 ? maxInfo.count : 1;
+      const maxCostDisplay = maxInfo.count > 0 ? maxInfo.cost : c1;
 
-        pushCloudSave(true);
-        updateHeaderHud();
-        refreshMapStyles();
-        renderRoutesOnMap();
-        if (!silent && state.activeTab === 'country') renderCountryView();
+      return `
+        <div class="white-card">
+          <div class="troop-header">
+            <div class="troop-icon">${tr.icon}</div>
+            <div>
+              <span class="tag-cat ${tr.cls}">${tr.cat}</span>
+              <div style="font-size:17px;font-weight:900;margin-top:3px;">${tr.name}</div>
+              <div style="font-size:13px;font-weight:800;color:#2563eb;">Effectif : ${fmt(count)}</div>
+            </div>
+          </div>
+          <div class="summary-sub" style="margin-top:10px;">${tr.desc}</div>
+          <div class="stat-chips">
+            <span class="stat-chip">PV : ${fmt(tr.hp)}</span>
+            <span class="stat-chip">Attaque : ${fmt(tr.atk)}</span>
+            <span class="stat-chip">Défense : ${fmt(tr.def)}</span>
+            <span class="stat-chip">Coût : ${fmt(unitPrice)} or</span>
+            <span class="stat-chip">1 nourriture</span>
+          </div>
+          <div class="buy-grid">
+            <button class="buy-box" ${freeFood < 1 || state.gold < c1 ? "disabled" : ""} onclick="buyTroopQty('${cid}',${idx},1)">
+              <div class="q">+1</div><div class="p">${fmt(c1)} or</div>
+            </button>
+            <button class="buy-box" ${freeFood < 10 || state.gold < c10 ? "disabled" : ""} onclick="buyTroopQty('${cid}',${idx},10)">
+              <div class="q">+10</div><div class="p">${fmt(c10)} or</div>
+            </button>
+            <button class="buy-box" ${freeFood < 100 || state.gold < c100 ? "disabled" : ""} onclick="buyTroopQty('${cid}',${idx},100)">
+              <div class="q">+100</div><div class="p">${fmt(c100)} or</div>
+            </button>
+            <button class="buy-box" ${maxInfo.count < 1 ? "disabled" : ""} onclick="buyTroopQty('${cid}',${idx},${maxInfo.count})">
+              <div class="q">Max ${maxInfo.count > 1 ? "(" + maxInfo.count + ")" : ""}</div><div class="p">${fmt(maxCostDisplay)} or</div>
+            </button>
+          </div>
+        </div>`;
+    }).join("");
+
+    box.innerHTML = `
+      <!-- 3 CARTES RÉSUMÉ DU HAUT -->
+      <div class="white-card">
+        <div class="summary-row"><span>⛏️ Mines d'or</span><span>${fmt(owned.mines)} / 300 000</span></div>
+        <div class="summary-sub">Production : <b style="color:#16a34a;">+${fmt(owned.mines * 2)} or/s</b> (2 or/s par mine)</div>
+      </div>
+
+      <div class="white-card">
+        <div class="summary-row"><span>🌾 Fermes</span><span>${fmt(owned.farms)} / 300 000</span></div>
+        <div class="summary-sub">Nourrit jusqu'à <b>${fmt(maxSoldiers)} soldats</b> (2,5 par ferme)</div>
+      </div>
+
+      <div class="white-card">
+        <div class="summary-row"><span>⚔️ Armée totale</span><span>${fmt(totalSoldiers)} / 750 000</span></div>
+        <div class="summary-sub">Nourriture utilisée : <b>${fmt(totalSoldiers)} / ${fmt(maxSoldiers)}</b></div>
+      </div>
+
+      <!-- DÉVELOPPEMENT NIVEAU 1 À 5 -->
+      <div class="white-card">
+        <div class="summary-row">
+          <span>🏛️ Développement — ${country.flag} ${country.name}</span>
+          <span class="tag-pill tag-gold">Niveau ${owned.level} / 5</span>
+        </div>
+        <div class="summary-sub">${owned.level >= 5 ? "Toutes les unités exclusives du pays sont débloquées." : `Niveau suivant (${owned.level + 1}) : <b>${fmt(lvlCosts.gold)} or</b> + <b>${fmt(lvlCosts.know)} 🧠 Connaissances</b>`}</div>
+        ${owned.level < 5 ? `<button class="btn purple" style="width:100%;margin-top:10px;" ${!canLvl ? "disabled" : ""} onclick="upgradeCountry('${cid}')">Améliorer au Niveau ${owned.level + 1}</button>` : ""}
+      </div>
+
+      <!-- INFRASTRUCTURES DU PAYS -->
+      <div class="section-title">Infrastructures du pays</div>
+
+      <div class="white-card">
+        <div class="summary-row">
+          <span>⛏️ Mine d'or</span>
+          <span class="tag-pill tag-gold">${fmt(mineUnit)} or / mine</span>
+        </div>
+        <div class="summary-sub">Rapporte +2 or par seconde. Possédées : <b>${fmt(owned.mines)} / 300 000</b>.</div>
+        <div class="buy-grid">
+          <button class="buy-box" ${mineCapRem < 1 || state.gold < mineC1 ? "disabled" : ""} onclick="buyMineQty('${cid}',1)">
+            <div class="q">+1</div><div class="p">${fmt(mineC1)} or</div>
+          </button>
+          <button class="buy-box" ${mineCapRem < 10 || state.gold < mineC10 ? "disabled" : ""} onclick="buyMineQty('${cid}',10)">
+            <div class="q">+10</div><div class="p">${fmt(mineC10)} or</div>
+          </button>
+          <button class="buy-box" ${mineCapRem < 100 || state.gold < mineC100 ? "disabled" : ""} onclick="buyMineQty('${cid}',100)">
+            <div class="q">+100</div><div class="p">${fmt(mineC100)} or</div>
+          </button>
+          <button class="buy-box" ${mineMax.count < 1 ? "disabled" : ""} onclick="buyMineQty('${cid}',${mineMax.count})">
+            <div class="q">Max ${mineMax.count > 1 ? "(" + mineMax.count + ")" : ""}</div><div class="p">${fmt(mineMax.count > 0 ? mineMax.cost : mineC1)} or</div>
+          </button>
+        </div>
+      </div>
+
+      <div class="white-card">
+        <div class="summary-row">
+          <span>🌾 Ferme</span>
+          <span class="tag-pill tag-green">${fmt(farmUnit)} or / ferme</span>
+        </div>
+        <div class="summary-sub">Nourrit 2,5 soldats (100 000 fermes = 250 000 soldats). Possédées : <b>${fmt(owned.farms)} / 300 000</b>.</div>
+        <div class="buy-grid">
+          <button class="buy-box" ${farmCapRem < 1 || state.gold < farmC1 ? "disabled" : ""} onclick="buyFarmQty('${cid}',1)">
+            <div class="q">+1</div><div class="p">${fmt(farmC1)} or</div>
+          </button>
+          <button class="buy-box" ${farmCapRem < 10 || state.gold < farmC10 ? "disabled" : ""} onclick="buyFarmQty('${cid}',10)">
+            <div class="q">+10</div><div class="p">${fmt(farmC10)} or</div>
+          </button>
+          <button class="buy-box" ${farmCapRem < 100 || state.gold < farmC100 ? "disabled" : ""} onclick="buyFarmQty('${cid}',100)">
+            <div class="q">+100</div><div class="p">${fmt(farmC100)} or</div>
+          </button>
+          <button class="buy-box" ${farmMax.count < 1 ? "disabled" : ""} onclick="buyFarmQty('${cid}',${farmMax.count})">
+            <div class="q">Max ${farmMax.count > 1 ? "(" + farmMax.count + ")" : ""}</div><div class="p">${fmt(farmMax.count > 0 ? farmMax.cost : farmC1)} or</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- TROUPES EXCLUSIVES DU PAYS -->
+      <div class="section-title">Troupes exclusives — ${country.name}</div>
+      <div><span class="tag-pill tag-green">Nourriture : ${fmt(totalSoldiers)} / ${fmt(maxSoldiers)} places (1 ferme = 2,5 soldats)</span></div>
+      ${troopsHtml}
+    `;
+  }
+
+  if (state.activeTab === "genie") {
+    const now = Date.now();
+    if (state.genie.busy) {
+      const rem = Math.max(0, Math.ceil((state.genie.endTime - now) / 1000));
+      const min = Math.floor(rem / 60);
+      const sec = rem % 60;
+      box.innerHTML = `
+        <div class="white-card">
+          <div class="summary-row"><span>🧞 Cabinet du Génie — Expédition en cours</span></div>
+          <div class="summary-sub">Mission : <b>${state.genie.label}</b></div>
+          <div style="font-size:20px;font-weight:900;color:#b45309;margin:10px 0;">⏳ Temps restant : ${min}m ${sec < 10 ? "0" : ""}${sec}s</div>
+          <div class="summary-sub">Récompense garantie : <b>+${fmt(state.genie.rewardGold)} or</b> et <b>+${fmt(state.genie.rewardKnow)} 🧠</b> (continue même hors-ligne).</div>
+        </div>`;
+    } else {
+      const done = state.genie.expeditionsDone || 0;
+      const mult = Math.pow(1.3, done);
+      const missions = [
+        { label:"Exploration des archives antiques", sec:45,  gold:Math.round(120000 * mult), know:Math.round(15 * mult) },
+        { label:"Cartographie des routes commerciales", sec:180, gold:Math.round(450000 * mult), know:Math.round(45 * mult) },
+        { label:"Expédition scientifique mondiale", sec:600, gold:Math.round(1500000 * mult), know:Math.round(120 * mult) }
+      ];
+      box.innerHTML = `
+        <div class="white-card">
+          <div class="summary-row">
+            <span>🧞 Cabinet du Génie</span>
+            <span class="tag-pill tag-gold">Expéditions : ${done}</span>
+          </div>
+          <div class="summary-sub">Envoie ton Génie en expédition chronométrée pour gagner d'importantes réserves d'or et des Connaissances.</div>
+          ${missions.map((m, i) => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;margin-top:8px;">
+              <div>
+                <div style="font-weight:800;font-size:13.5px;">${m.label}</div>
+                <div class="summary-sub" style="margin-top:2px;">⏱️ ${m.sec < 60 ? m.sec + "s" : (m.sec / 60) + " min"} • +${fmt(m.gold)} or • +${fmt(m.know)} 🧠</div>
+              </div>
+              <button class="btn purple" onclick="startGenie(${i})">Envoyer</button>
+            </div>`).join("")}
+        </div>`;
+    }
+  }
+
+  if (state.activeTab === "war") {
+    const myIds = Object.keys(state.owned);
+    const originId = myIds[0];
+    const orig = COUNTRY_MAP[originId];
+    const targets = COUNTRIES.filter(c => !state.owned[c.id]);
+    const now = Date.now();
+
+    let activeHtml = state.marches.length === 0
+      ? `<div class="summary-sub">Aucune armée en marche actuellement.</div>`
+      : state.marches.map(m => {
+          const rem = Math.max(0, Math.ceil((m.endTime - now) / 1000));
+          const t = COUNTRY_MAP[m.to];
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;margin-top:6px;"><div><b>➡️ Vers ${t.flag} ${t.name}</b><div class="summary-sub" style="margin:0;">Force : ${fmt(m.power)}</div></div><span class="tag-pill tag-gold">⏳ ${rem}s</span></div>`;
+        }).join("");
+
+    let targetsHtml = targets.slice(0, 14).map(t => {
+      const dist = Math.round(Math.hypot(t.x - orig.x, t.y - orig.y));
+      const days = Math.max(1, Math.round(dist / 95));
+      const travelSec = days * 15;
+      return `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;margin-top:6px;">
+          <div>
+            <div style="font-weight:800;font-size:13.5px;">${t.flag} ${t.name}</div>
+            <div class="summary-sub" style="margin:0;">Trajet : ${days} jour(s) • Défense : ${fmt(getCountryPower(t.id))}</div>
+          </div>
+          <button class="btn red" style="padding:7px 11px;font-size:12px;" onclick="launchAttack('${originId}','${t.id}',${days},${travelSec})">Attaquer</button>
+        </div>`;
+    }).join("");
+
+    box.innerHTML = `
+      <div class="white-card">
+        <div class="summary-row"><span>🚀 Campagnes militaires en cours</span></div>
+        ${activeHtml}
+      </div>
+      <div class="white-card">
+        <div class="summary-row"><span>🎯 Cibles accessibles depuis ${orig.flag} ${orig.name}</span></div>
+        ${targetsHtml}
+      </div>`;
+  }
+}
+
+/* ACTIONS D'ACHAT MULTIPLES (+1, +10, +100, MAX) */
+function buyMineQty(id, qty) {
+  const p = state.owned[id];
+  const bought = Math.max(0, p.mines - 2);
+  const actualQty = Math.min(qty, MAX_INFRA - p.mines);
+  if (actualQty <= 0) return;
+  const cost = calcSeriesCost(MINE_BASE, MINE_GROWTH, bought, actualQty);
+  if (state.gold < cost) return;
+  state.gold -= cost;
+  p.mines += actualQty;
+  saveGame(); renderAll();
+}
+function buyFarmQty(id, qty) {
+  const p = state.owned[id];
+  const bought = Math.max(0, p.farms - 1);
+  const actualQty = Math.min(qty, MAX_INFRA - p.farms);
+  if (actualQty <= 0) return;
+  const cost = calcSeriesCost(FARM_BASE, FARM_GROWTH, bought, actualQty);
+  if (state.gold < cost) return;
+  state.gold -= cost;
+  p.farms += actualQty;
+  saveGame(); renderAll();
+}
+function buyTroopQty(id, idx, qty) {
+  const p = state.owned[id];
+  const tr = TIER_DEFS[idx];
+  if (p.level < tr.reqLvl) return;
+  const freeFood = Math.max(0, getMaxSoldiers() - getTotalSoldiers());
+  const actualQty = Math.min(qty, freeFood);
+  if (actualQty <= 0) return;
+  const count = p.troops[idx] || 0;
+  const bought = Math.max(0, count - (idx === 0 ? 1 : 0));
+  const cost = calcSeriesCost(tr.baseCost, tr.growth, bought, actualQty);
+  if (state.gold < cost) return;
+  state.gold -= cost;
+  p.troops[idx] = count + actualQty;
+  saveGame(); renderAll();
+}
+function upgradeCountry(id) {
+  const p = state.owned[id];
+  const costs = getCountryLevelCosts(p.level);
+  if (p.level >= 5 || state.gold < costs.gold || state.knowledge < costs.know) return;
+  state.gold -= costs.gold;
+  state.knowledge -= costs.know;
+  p.level += 1;
+  saveGame(); renderAll();
+}
+function startGenie(idx) {
+  const done = state.genie.expeditionsDone || 0;
+  const mult = Math.pow(1.3, done);
+  const missions = [
+    { label:"Exploration des archives antiques", sec:45,  gold:Math.round(120000 * mult), know:Math.round(15 * mult) },
+    { label:"Cartographie des routes commerciales", sec:180, gold:Math.round(450000 * mult), know:Math.round(45 * mult) },
+    { label:"Expédition scientifique mondiale", sec:600, gold:Math.round(1500000 * mult), know:Math.round(120 * mult) }
+  ];
+  const m = missions[idx];
+  if (!m || state.genie.busy) return;
+  state.genie = {
+    busy: true,
+    endTime: Date.now() + m.sec * 1000,
+    rewardGold: m.gold,
+    rewardKnow: m.know,
+    label: m.label,
+    expeditionsDone: done + 1
+  };
+  saveGame(); renderAll();
+}
+function launchAttack(fromId, toId, days, travelSec) {
+  if (state.owned[toId]) return;
+  const power = getCountryPower(fromId);
+  state.marches.push({
+    id: "m_" + Date.now(),
+    from: fromId,
+    to: toId,
+    startTime: Date.now(),
+    endTime: Date.now() + travelSec * 1000,
+    power
+  });
+  saveGame(); renderAll();
+}
+
+function processElapsed(seconds) {
+  if (seconds <= 0) return;
+  state.gold += getIncomePerSec() * seconds;
+
+  const now = Date.now();
+  if (state.genie.busy && now >= state.genie.endTime) {
+    state.gold += state.genie.rewardGold;
+    state.knowledge += state.genie.rewardKnow;
+    state.genie.busy = false;
+  }
+
+  const remaining = [];
+  state.marches.forEach(m => {
+    if (now >= m.endTime) {
+      const def = getCountryPower(m.to);
+      if (m.power >= def) {
+        state.owned[m.to] = { level: 1, mines: 1, farms: 1, troops: [1, 0, 0, 0, 0, 0] };
+        state.selectedId = m.to;
       }
+    } else {
+      remaining.push(m);
+    }
+  });
+  state.marches = remaining;
+  state.lastTick = now;
+}
 
-      // =========================================================================
-      // 9. ATTAQUES EN JOURS RÉELS SELON DISTANCE & ANNEXION D'UN 2e PAYS
-      // =========================================================================
-      function computeMilitaryPower(country) {
-        if (!country) return { attack: 0, defense: 0, count: 0 };
-        var cs = ensureCountryState(country);
-        var allTroops = getAllTroopsForCountry(country);
-        var totalAtk = 0;
-        var totalDef = 0;
-        var count = 0;
-        for (var i = 0; i < allTroops.length; i++) {
-          var qty = Number(cs.troops[allTroops[i].id]) || 0;
-          if (qty > 0) {
-            totalAtk += qty * allTroops[i].atk;
-            totalDef += qty * (allTroops[i].def + Math.round(allTroops[i].hp * 0.25));
-            count += qty;
-          }
-        }
-        return { attack: totalAtk, defense: totalDef, count: count };
-      }
+function renderHud() {
+  const c = state.selectedId ? COUNTRY_MAP[state.selectedId] : null;
+  document.getElementById("hud-country-pill").textContent = c ? `${c.flag} ${c.name}` : "🏳️ Choisir un pays";
+  document.getElementById("hud-gold").innerHTML = `🪙 ${fmt(Math.floor(state.gold))} or <span style="color:#4ade80;">+${fmt(getIncomePerSec())} or/s</span>`;
+  document.getElementById("hud-know").textContent = `🧠 ${fmt(state.knowledge)}`;
+}
 
-      function applySoldierCasualties(country, lossRatio) {
-        if (!country || lossRatio <= 0) return;
-        var cs = ensureCountryState(country);
-        var allTroops = getAllTroopsForCountry(country);
-        for (var i = 0; i < allTroops.length; i++) {
-          var tid = allTroops[i].id;
-          var cur = Number(cs.troops[tid]) || 0;
-          if (cur > 0) {
-            cs.troops[tid] = Math.max(0, cur - Math.floor(cur * lossRatio));
-          }
-        }
-        if (getTotalSoldiers(country) < 1 && allTroops.length > 0) {
-          cs.troops[allTroops[0].id] = 1;
-        }
-      }
+function renderAll() {
+  renderHud();
+  renderMap();
+  renderPanel();
+}
 
-      function launchMilitaryCampaign(fromCountry, toCountry, remoteTargetPlayer) {
-        if (!fromCountry || !toCountry) return;
-        var travelSec = calcMilitaryTravelSeconds(fromCountry, toCountry);
-        var camp = {
-          id: 'camp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
-          fromId: fromCountry.id,
-          fromName: fromCountry.name,
-          toId: toCountry.id,
-          toName: toCountry.name,
-          startedAt: Date.now(),
-          durationMs: travelSec * 1000,
-          remotePlayer: remoteTargetPlayer ? {
-            id: remoteTargetPlayer.id,
-            name: remoteTargetPlayer.name,
-            defense: remoteTargetPlayer.defense,
-            gold: remoteTargetPlayer.gold
-          } : null
-        };
-        state.campaigns.push(camp);
-        state.multi.lastCombatReport = '🚀 Armée de ' + fromCountry.name + ' en marche vers ' + toCountry.name + ' (impact dans ' + formatDuration(travelSec) + ').';
-        pushCloudSave(true);
-        renderRoutesOnMap();
-        renderCampaignsPanel();
-        renderMapCard();
-      }
+setInterval(() => {
+  processElapsed(1);
+  renderHud();
+  renderMap();
+  if (state.activeTab === "genie" || state.activeTab === "war") renderPanel();
+}, 1000);
 
-      function resolveArrivedCampaigns(silent) {
-        var now = Date.now();
-        var remaining = [];
-        var resolvedCount = 0;
+setInterval(() => { saveGame(); }, 10000);
 
-        for (var i = 0; i < state.campaigns.length; i++) {
-          var camp = state.campaigns[i];
-          if (now < camp.startedAt + camp.durationMs) {
-            remaining.push(camp);
-            continue;
-          }
+function initFirebaseSafe() {
+  try {
+    if (window.firebase && !firebase.apps.length) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore();
+    }
+  } catch (e) {}
+}
 
-          resolvedCount++;
-          var fromC = getCountryById(camp.fromId);
-          var toC = getCountryById(camp.toId);
-          if (!fromC || !toC) continue;
+function openAuthModal() { document.getElementById("auth-modal").classList.add("open"); }
+function openMultiModal() { document.getElementById("multi-modal").classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
 
-          var cs = ensureCountryState(fromC);
-          var myPow = computeMilitaryPower(fromC);
+function setAuthMode(mode) {
+  authMode = mode;
+  document.getElementById("seg-login").classList.toggle("active", mode === "login");
+  document.getElementById("seg-register").classList.toggle("active", mode === "register");
+  document.getElementById("auth-submit-btn").textContent = mode === "login" ? "Charger ma sauvegarde" : "Créer et sauvegarder";
+  document.getElementById("auth-msg").textContent = "";
+}
 
-          if (camp.remotePlayer) {
-            var enemyDef = Math.max(10, Number(camp.remotePlayer.defense) || 50);
-            var ratio = myPow.attack / (myPow.attack + enemyDef);
-            var winPct = Math.max(5, Math.min(95, Math.round(ratio * 100)));
-            var victory = (Math.random() * 100) < winPct;
-            if (victory) {
-              var loot = Math.max(30000, Math.floor((Number(camp.remotePlayer.gold) || 0) * 0.25));
-              applySoldierCasualties(fromC, (1 - ratio) * 0.35);
-              cs.gold += loot;
-              state.multi.lastCombatReport = '🏆 VICTOIRE à ' + toC.name + ' contre ' + camp.remotePlayer.name + ' ! Butin : +' + formatFr(loot) + ' or.';
-              sendRoomInboxAndChat(camp.remotePlayer.id, { type: 'under_attack', loot: loot, defenderLossRatio: 0.35 },
-                '⚔️ ' + (state.cloud.username || 'Un commandant') + ' (' + fromC.name + ') a vaincu ' + camp.remotePlayer.name + ' à ' + toC.name + ' (+' + formatFr(loot) + ' or) !');
-            } else {
-              applySoldierCasualties(fromC, 0.35);
-              state.multi.lastCombatReport = '💥 DÉFAITE à ' + toC.name + ' face à ' + camp.remotePlayer.name + '.';
-            }
-          } else {
-            var garrison = getNeutralGarrison(toC);
-            var nRatio = myPow.attack / (myPow.attack + Math.max(10, garrison.defense));
-            var nWinPct = Math.max(8, Math.min(96, Math.round(nRatio * 100)));
-            var nVictory = (Math.random() * 100) < nWinPct;
-            if (nVictory) {
-              var nLoot = Math.max(20000, Math.floor(garrison.treasury * 0.35));
-              garrison.treasury = Math.max(50000, garrison.treasury - nLoot);
-              garrison.soldiers = Math.max(0, Math.floor(garrison.soldiers * 0.45));
-              garrison.defense = Math.max(500, Math.floor(garrison.defense * 0.45));
-              applySoldierCasualties(fromC, (1 - nRatio) * 0.25);
-              cs.gold += nLoot;
-              state.multi.lastCombatReport = '🏆 Garnison de ' + toC.name + ' enfoncée ! Butin : +' + formatFr(nLoot) + ' or (Garnison restante : ' + formatFr(garrison.soldiers) + ').';
-            } else {
-              applySoldierCasualties(fromC, 0.3);
-              state.multi.lastCombatReport = '💥 Assaut repoussé par la garnison de ' + toC.name + ' (' + formatFr(garrison.soldiers) + ' défenseurs).';
-            }
-          }
-        }
+async function submitAuth() {
+  const pseudo = document.getElementById("auth-pseudo").value.trim();
+  const pin = document.getElementById("auth-pin").value.trim();
+  const msg = document.getElementById("auth-msg");
 
-        state.campaigns = remaining;
-        if (resolvedCount > 0 && !silent) {
-          pushCloudSave(true);
-          updateHeaderHud();
-          renderRoutesOnMap();
-          renderCampaignsPanel();
-          renderMapCard();
-        }
-        return resolvedCount;
-      }
+  if (!pseudo || !/^\d{4}$/.test(pin)) {
+    msg.textContent = "Entre un pseudo et un code PIN à 4 chiffres.";
+    return;
+  }
+  const key = pseudo.toLowerCase();
+  msg.style.color = "#2563eb";
+  msg.textContent = "Synchronisation...";
 
-      function annexCountry(targetCountry) {
-        if (!targetCountry || isCountryOwned(targetCountry.id)) return;
-        var activeC = getActiveCountry();
-        if (!activeC) return;
-        var activeCs = ensureCountryState(activeC);
-        var cost = calcAnnexationCost(targetCountry, state.ownedIds.length);
-        var garrison = getNeutralGarrison(targetCountry);
-        var canAnnex = activeCs.gold >= cost && garrison.soldiers <= Math.ceil(garrison.maxSoldiers * 0.25);
-        if (!canAnnex) return;
-
-        activeCs.gold -= cost;
-        state.ownedIds.push(targetCountry.id);
-        state.activeOwnedId = targetCountry.id;
-        ensureCountryState(targetCountry);
-        state.multi.lastCombatReport = '👑 ANNEXE RÉUSSIE ! ' + targetCountry.name + ' rejoint ton Empire !';
-        pushCloudSave(true);
-        updateNavigationUI();
-        refreshMapStyles();
-        switchTab('country', targetCountry.id);
-      }
-
-      function renderCampaignsPanel() {
-        var panel = document.getElementById('campaigns-panel');
-        if (!panel) return;
-        if (state.campaigns.length === 0) {
-          panel.style.display = 'none';
+  try {
+    if (db) {
+      const ref = db.collection("players").doc(key);
+      const snap = await Promise.race([
+        ref.get(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 3500))
+      ]);
+      if (authMode === "register") {
+        if (snap.exists && snap.data().pin !== pin) {
+          msg.style.color = "#dc2626";
+          msg.textContent = "Ce pseudo est déjà pris avec un autre PIN.";
           return;
         }
-        panel.style.display = 'block';
-        var html = '<div style="font-weight:900;font-size:15px;color:#881337;">⚔️ Offensives militaires en cours (' + state.campaigns.length + ')</div>';
-        for (var i = 0; i < state.campaigns.length; i++) {
-          var c = state.campaigns[i];
-          var remSec = Math.max(0, (c.startedAt + c.durationMs - Date.now()) / 1000);
-          html +=
-            '<div class="campaign-item">' +
-              '<div><b>' + c.fromName + ' ➔ ' + c.toName + '</b>' + (c.remotePlayer ? (' (' + c.remotePlayer.name + ')') : ' (Garnison locale)') + '</div>' +
-              '<span class="stat-pill red" data-camp-timer="' + c.id + '">⏱️ Impact dans ' + formatDuration(remSec) + '</span>' +
-            '</div>';
-        }
-        panel.innerHTML = html;
-      }
-
-      // =========================================================================
-      // 10. RENDU DE L'ONGLET 2 (GESTION DU PAYS ACTIF)
-      // =========================================================================
-      function renderCountryView() {
-        var container = document.getElementById('view-country');
-        var country = getActiveCountry();
-        if (!country) {
-          switchTab('map');
-          return;
-        }
-
-        var cs = ensureCountryState(country);
-        var maxFarms = calcFarmsForSoldiers(country.maxSoldiers);
-        var foodCap = Math.floor(cs.farms * 2.5);
-        var usedFood = getTotalSoldiers(country) * TROOP_FOOD_COST;
-        var freeFood = Math.max(0, foodCap - usedFood);
-        var goldRate = cs.mines * MINE_RATE;
-        var unlockedCount = getUnlockedTroopCount(cs.devLevel);
-        var devInfo = DEV_LEVELS[cs.devLevel] || DEV_LEVELS[3];
-
-        var devHtml = '';
-        if (cs.devLevel < 5) {
-          var req = DEV_UPGRADE_COSTS[cs.devLevel];
-          var canUpgrade = cs.gold >= req.gold && cs.knowledge >= req.knowledge;
-          var knowPct = Math.min(100, Math.round((cs.knowledge / req.knowledge) * 100));
-          devHtml =
-            '<div class="dev-upgrade-box">' +
-              '<div style="flex:1;min-width:230px;">' +
-                '<div style="font-weight:900;font-size:15px;color:#78350f;">🏛️ Développement : Niveau ' + cs.devLevel + ' / 5 (' + devInfo.label + ')</div>' +
-                '<div style="font-size:13px;color:#92400e;margin-top:3px;">Passer au <b>Niveau ' + (cs.devLevel + 1) + '</b> débloque la <b>' + (unlockedCount + 1) + 'ᵉ troupe unique</b> de ' + country.name + '.</div>' +
-                '<div class="pills-row">' +
-                  '<span class="stat-pill gold">Coût : ' + formatFr(req.gold) + ' or</span>' +
-                  '<span class="stat-pill purple">Requis : ' + formatFr(cs.knowledge) + ' / ' + formatFr(req.knowledge) + ' 🧠</span>' +
-                '</div>' +
-                '<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:' + knowPct + '%"></div></div>' +
-              '</div>' +
-              '<button type="button" class="primary-btn" id="btn-upgrade-dev"' + (canUpgrade ? '' : ' disabled') + '>Améliorer au Niv. ' + (cs.devLevel + 1) + '</button>' +
-            '</div>';
-        } else {
-          devHtml =
-            '<div class="dev-upgrade-box">' +
-              '<div>' +
-                '<div style="font-weight:900;font-size:15px;color:#78350f;">👑 Niveau Maximum Atteint : Niveau 5 / 5 (Superpuissance)</div>' +
-                '<div style="font-size:13px;color:#92400e;margin-top:3px;">Toutes les 6 troupes exclusives de ' + country.name + ' sont disponibles.</div>' +
-              '</div>' +
-            '</div>';
-        }
-
-        var remMines = Math.max(0, country.maxMines - cs.mines);
-        var maxBuyMines = Math.min(remMines, Math.floor(cs.gold / MINE_COST));
-        var remFarms = Math.max(0, maxFarms - cs.farms);
-        var maxBuyFarms = Math.min(remFarms, Math.floor(cs.gold / FARM_COST));
-
-        var missionHtml = '';
-        if (cs.genius.activeMission) {
-          var am = cs.genius.activeMission;
-          var remSec = Math.max(0, (am.startedAt + am.durationMs - Date.now()) / 1000);
-          var pct = Math.min(100, Math.max(0, Math.round(((Date.now() - am.startedAt) / am.durationMs) * 100)));
-          missionHtml =
-            '<div class="active-mission-banner">' +
-              '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">' +
-                '<div>' +
-                  '<div style="font-weight:900;font-size:14.5px;color:#581c87;">⏳ Mission en cours : ' + am.title + ' (' + am.targetName + ')</div>' +
-                  '<div style="font-size:12.5px;color:#6b21a8;margin-top:2px;">Récompense prévue : <b>+' + am.reward + ' 🧠 Connaissances</b></div>' +
-                '</div>' +
-                '<span class="stat-pill purple" id="genius-timer-badge" style="font-size:14px;">⏱️ ' + formatDuration(remSec) + '</span>' +
-              '</div>' +
-              '<div class="progress-bar-wrap"><div class="progress-bar-fill" id="genius-progress-fill" style="width:' + pct + '%"></div></div>' +
-            '</div>';
-        } else {
-          var foreignOptions = '';
-          for (var fc = 0; fc < COUNTRIES.length; fc++) {
-            if (COUNTRIES[fc].id !== country.id) {
-              foreignOptions += '<option value="' + COUNTRIES[fc].id + '">' + COUNTRIES[fc].name + ' (Niv. ' + COUNTRIES[fc].dev + ')</option>';
-            }
-          }
-          var cards = '';
-          for (var gm = 0; gm < GENIUS_MISSIONS.length; gm++) {
-            var m = GENIUS_MISSIONS[gm];
-            var canAffordM = cs.gold >= m.cost;
-            cards +=
-              '<div class="mission-card">' +
-                '<div>' +
-                  '<div style="font-weight:900;font-size:14px;">' + m.title + '</div>' +
-                  '<div style="font-size:12px;color:var(--mute);margin-top:3px;">' + m.desc + '</div>' +
-                '</div>' +
-                '<div class="pills-row">' +
-                  '<span class="stat-pill gold">' + (m.cost === 0 ? 'Gratuit' : formatFr(m.cost) + ' or') + '</span>' +
-                  '<span class="stat-pill">⏱️ ' + formatDuration(m.durationSec) + '</span>' +
-                  '<span class="stat-pill purple">+' + m.minGain + ' à ' + m.maxGain + ' 🧠</span>' +
-                '</div>' +
-                (m.foreign ? '<select class="multi-input" id="foreign-target-select" style="padding:6px 8px;font-size:12.5px;">' + foreignOptions + '</select>' : '') +
-                '<button type="button" class="primary-btn purple btn-start-mission" data-mid="' + m.id + '" style="padding:9px 12px;font-size:13px;"' + (canAffordM ? '' : ' disabled') + '>Envoyer le Génie</button>' +
-              '</div>';
-          }
-          missionHtml = '<div class="missions-grid">' + cards + '</div>';
-        }
-
-        var allTroops = getAllTroopsForCountry(country);
-        var troopsHtml = '';
-        for (var t = 0; t < allTroops.length; t++) {
-          var tr = allTroops[t];
-          var isDevUnlocked = t < unlockedCount;
-          var reqKnow = isDevUnlocked ? getTroopKnowledgeRequirement(unlockedCount, t) : 0;
-          var hasKnow = cs.knowledge >= reqKnow;
-          var ownedQty = Number(cs.troops[tr.id]) || 0;
-          var maxRecruit = 0;
-          if (isDevUnlocked && hasKnow) {
-            var byGold = Math.floor(cs.gold / tr.cost);
-            var byCap = Math.max(0, country.maxSoldiers - usedFood);
-            maxRecruit = Math.min(byGold, freeFood, byCap);
-          }
-
-          var lockBadge = '';
-          if (!isDevUnlocked) {
-            lockBadge = '<span class="stat-pill">🔒 Débloqué au Niveau ' + (t - 1) + '</span>';
-          } else if (reqKnow > 0) {
-            lockBadge = hasKnow
-              ? '<span class="stat-pill green">✓ ' + formatFr(reqKnow) + ' 🧠 atteint</span>'
-              : '<span class="stat-pill purple">🔒 Requis : ' + formatFr(cs.knowledge) + ' / ' + formatFr(reqKnow) + ' 🧠</span>';
-          }
-
-          troopsHtml +=
-            '<div class="troop-card' + ((!isDevUnlocked || !hasKnow) ? ' locked' : '') + '">' +
-              '<div class="troop-top">' +
-                '<div class="troop-art">' + getTroopSvg(tr.art) + '</div>' +
-                '<div>' +
-                  '<div style="font-weight:900;font-size:15px;">' + tr.name + '</div>' +
-                  '<div style="font-size:12.5px;color:var(--mute);">En service : <b>' + formatFr(ownedQty) + '</b></div>' +
-                  '<div class="pills-row">' +
-                    '<span class="stat-pill gold">🪙 ' + formatFr(tr.cost) + ' or</span>' +
-                    '<span class="stat-pill green">🌾 1 nourriture</span>' +
-                    lockBadge +
-                  '</div>' +
-                '</div>' +
-              '</div>' +
-              '<div class="pills-row">' +
-                '<span class="stat-pill blue">⚔️ ATQ ' + tr.atk + '</span>' +
-                '<span class="stat-pill">🛡️ DEF ' + tr.def + '</span>' +
-                '<span class="stat-pill">❤️ PV ' + tr.hp + '</span>' +
-              '</div>' +
-              '<div class="batch-row">' +
-                '<button type="button" class="batch-btn btn-buy-troop" data-tid="' + tr.id + '" data-qty="1"' + (maxRecruit >= 1 ? '' : ' disabled') + '>+1</button>' +
-                '<button type="button" class="batch-btn btn-buy-troop" data-tid="' + tr.id + '" data-qty="10"' + (maxRecruit >= 10 ? '' : ' disabled') + '>+10</button>' +
-                '<button type="button" class="batch-btn btn-buy-troop" data-tid="' + tr.id + '" data-qty="100"' + (maxRecruit >= 100 ? '' : ' disabled') + '>+100</button>' +
-                '<button type="button" class="batch-btn btn-buy-troop" data-tid="' + tr.id + '" data-qty="max"' + (maxRecruit >= 1 ? '' : ' disabled') + '>Max (' + formatFr(maxRecruit) + ')</button>' +
-              '</div>' +
-            '</div>';
-        }
-
-        container.innerHTML =
-          '<div class="country-panel">' +
-            '<div class="country-header">' +
-              '<div class="country-title-block">' +
-                getFlagSvg(country.id, 'flag-svg-lg') +
-                '<div>' +
-                  '<h1>' + country.name + '</h1>' +
-                  '<div style="font-size:13px;color:var(--mute);">' + country.region + ' · Niveau ' + cs.devLevel + '/5 (' + devInfo.label + ')</div>' +
-                '</div>' +
-              '</div>' +
-              '<button type="button" class="primary-btn secondary" id="btn-back-map" style="padding:9px 14px;font-size:13px;">🌍 Voir la carte</button>' +
-            '</div>' +
-
-            '<div class="kpi-grid">' +
-              '<div class="kpi-card">' +
-                '<div class="kpi-label">Trésorerie de ' + country.name + '</div>' +
-                '<div class="kpi-value" id="country-gold-val">🪙 ' + formatFr(cs.gold) + ' or</div>' +
-                '<div class="kpi-sub" style="color:#16a34a;font-weight:700;">+' + formatFr(goldRate) + ' or / seconde</div>' +
-              '</div>' +
-              '<div class="kpi-card">' +
-                '<div class="kpi-label">Mines d’or</div>' +
-                '<div class="kpi-value">⛏️ ' + formatFr(cs.mines) + ' / ' + formatFr(country.maxMines) + '</div>' +
-                '<div class="kpi-sub">100 000 or / mine (+2 or/s)</div>' +
-              '</div>' +
-              '<div class="kpi-card">' +
-                '<div class="kpi-label">Fermes & Rations</div>' +
-                '<div class="kpi-value">🌾 ' + formatFr(cs.farms) + ' / ' + formatFr(maxFarms) + '</div>' +
-                '<div class="kpi-sub">Nourrit ' + formatFr(foodCap) + ' soldats (1 ferme = 2,5)</div>' +
-              '</div>' +
-              '<div class="kpi-card">' +
-                '<div class="kpi-label">Armée & Connaissances</div>' +
-                '<div class="kpi-value">⚔️ ' + formatFr(usedFood) + ' / ' + formatFr(country.maxSoldiers) + '</div>' +
-                '<div class="kpi-sub">🧠 ' + formatFr(cs.knowledge) + ' Connaissances</div>' +
-              '</div>' +
-            '</div>' +
-
-            '<div style="margin-top:14px;">' + devHtml + '</div>' +
-          '</div>' +
-
-          '<div class="country-panel">' +
-            '<h2 class="section-heading">🏗️ Infrastructures économiques</h2>' +
-            '<div class="infra-grid">' +
-              '<div class="infra-card">' +
-                '<div>' +
-                  '<div style="font-weight:900;font-size:15px;">⛏️ Construire des Mines d’or</div>' +
-                  '<div style="font-size:12.5px;color:var(--mute);margin-top:3px;">Coût : <b>100 000 or</b> · Production : <b>+2 or/s</b> par mine.</div>' +
-                '</div>' +
-                '<div class="batch-row">' +
-                  '<button type="button" class="batch-btn btn-buy-mine" data-qty="1"' + (maxBuyMines >= 1 ? '' : ' disabled') + '>+1</button>' +
-                  '<button type="button" class="batch-btn btn-buy-mine" data-qty="10"' + (maxBuyMines >= 10 ? '' : ' disabled') + '>+10</button>' +
-                  '<button type="button" class="batch-btn btn-buy-mine" data-qty="100"' + (maxBuyMines >= 100 ? '' : ' disabled') + '>+100</button>' +
-                  '<button type="button" class="batch-btn btn-buy-mine" data-qty="max"' + (maxBuyMines >= 1 ? '' : ' disabled') + '>Max (' + formatFr(maxBuyMines) + ')</button>' +
-                '</div>' +
-              '</div>' +
-              '<div class="infra-card">' +
-                '<div>' +
-                  '<div style="font-weight:900;font-size:15px;">🌾 Construire des Fermes</div>' +
-                  '<div style="font-size:12.5px;color:var(--mute);margin-top:3px;">Coût : <b>80 000 or</b> · Capacité : <b>+2,5 soldats nourris</b> par ferme.</div>' +
-                '</div>' +
-                '<div class="batch-row">' +
-                  '<button type="button" class="batch-btn btn-buy-farm" data-qty="1"' + (maxBuyFarms >= 1 ? '' : ' disabled') + '>+1</button>' +
-                  '<button type="button" class="batch-btn btn-buy-farm" data-qty="10"' + (maxBuyFarms >= 10 ? '' : ' disabled') + '>+10</button>' +
-                  '<button type="button" class="batch-btn btn-buy-farm" data-qty="100"' + (maxBuyFarms >= 100 ? '' : ' disabled') + '>+100</button>' +
-                  '<button type="button" class="batch-btn btn-buy-farm" data-qty="max"' + (maxBuyFarms >= 1 ? '' : ' disabled') + '>Max (' + formatFr(maxBuyFarms) + ')</button>' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-          '</div>' +
-
-          '<div class="country-panel">' +
-            '<h2 class="section-heading"><span>🧠 Cabinet du Génie & Recherches</span><span class="stat-pill purple">🧠 ' + formatFr(cs.knowledge) + ' Connaissances</span></h2>' +
-            '<div class="genius-header">' +
-              getGeniusSvg() +
-              '<div style="flex:1;min-width:220px;">' +
-                '<div style="font-weight:900;font-size:15px;color:#4c1d95;">Génie Royal de ' + country.name + '</div>' +
-                '<div style="font-size:12.5px;color:#6b21a8;margin-top:2px;">Envoie-le visiter, étudier ou voyager à l’étranger pour débloquer les troupes avancées et monter jusqu’au Niveau 5.</div>' +
-              '</div>' +
-            '</div>' +
-            missionHtml +
-            '<div class="genius-log"><b>Journal des découvertes :</b><br>' + cs.genius.logs.join('<br>') + '</div>' +
-          '</div>' +
-
-          '<div class="country-panel">' +
-            '<h2 class="section-heading"><span>⚔️ Troupes exclusives de ' + country.name + '</span><span class="stat-pill green">Rations libres : ' + formatFr(freeFood) + '</span></h2>' +
-            '<div class="troops-grid">' + troopsHtml + '</div>' +
-          '</div>';
-
-        document.getElementById('btn-back-map').addEventListener('click', function () {
-          switchTab('map');
-        });
-
-        var upgBtn = document.getElementById('btn-upgrade-dev');
-        if (upgBtn) {
-          upgBtn.addEventListener('click', function () {
-            if (cs.devLevel >= 5) return;
-            var r = DEV_UPGRADE_COSTS[cs.devLevel];
-            if (cs.gold >= r.gold && cs.knowledge >= r.knowledge) {
-              cs.gold -= r.gold;
-              cs.devLevel += 1;
-              pushCloudSave(true);
-              updateHeaderHud();
-              renderCountryView();
-            }
-          });
-        }
-
-        var mineBtns = container.querySelectorAll('.btn-buy-mine');
-        for (var mb = 0; mb < mineBtns.length; mb++) {
-          mineBtns[mb].addEventListener('click', function () {
-            var q = this.getAttribute('data-qty');
-            var avail = Math.min(country.maxMines - cs.mines, Math.floor(cs.gold / MINE_COST));
-            var count = q === 'max' ? avail : Math.min(avail, Number(q) || 0);
-            if (count > 0) {
-              cs.gold -= count * MINE_COST;
-              cs.mines += count;
-              pushCloudSave(true);
-              updateHeaderHud();
-              renderCountryView();
-            }
-          });
-        }
-
-        var farmBtns = container.querySelectorAll('.btn-buy-farm');
-        for (var fb = 0; fb < farmBtns.length; fb++) {
-          farmBtns[fb].addEventListener('click', function () {
-            var q = this.getAttribute('data-qty');
-            var avail = Math.min(maxFarms - cs.farms, Math.floor(cs.gold / FARM_COST));
-            var count = q === 'max' ? avail : Math.min(avail, Number(q) || 0);
-            if (count > 0) {
-              cs.gold -= count * FARM_COST;
-              cs.farms += count;
-              pushCloudSave(true);
-              updateHeaderHud();
-              renderCountryView();
-            }
-          });
-        }
-
-        var missionBtns = container.querySelectorAll('.btn-start-mission');
-        for (var msb = 0; msb < missionBtns.length; msb++) {
-          missionBtns[msb].addEventListener('click', function () {
-            var mid = this.getAttribute('data-mid');
-            var sel = document.getElementById('foreign-target-select');
-            var targetId = sel ? sel.value : country.id;
-            startGeniusMission(country, mid, targetId);
-          });
-        }
-
-        var troopBtns = container.querySelectorAll('.btn-buy-troop');
-        for (var tb = 0; tb < troopBtns.length; tb++) {
-          troopBtns[tb].addEventListener('click', function () {
-            var tid = this.getAttribute('data-tid');
-            var q = this.getAttribute('data-qty');
-            var trObj = null;
-            for (var x = 0; x < allTroops.length; x++) {
-              if (allTroops[x].id === tid) trObj = allTroops[x];
-            }
-            if (!trObj) return;
-            var curFoodCap = Math.floor(cs.farms * 2.5);
-            var curUsed = getTotalSoldiers(country);
-            var curFree = Math.max(0, curFoodCap - curUsed);
-            var curCapRem = Math.max(0, country.maxSoldiers - curUsed);
-            var maxCan = Math.min(Math.floor(cs.gold / trObj.cost), curFree, curCapRem);
-            var count = q === 'max' ? maxCan : Math.min(maxCan, Number(q) || 0);
-            if (count > 0) {
-              cs.gold -= count * trObj.cost;
-              cs.troops[tid] = (Number(cs.troops[tid]) || 0) + count;
-              pushCloudSave(true);
-              updateHeaderHud();
-              renderCountryView();
-            }
-          });
-        }
-      }
-
-      // =========================================================================
-      // 11. MULTIJOUEUR EN LIGNE TEMPS RÉEL (FIRESTORE)
-      // =========================================================================
-      function generateRoomCode() {
-        var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        var code = 'GP';
-        for (var i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-        return code;
-      }
-
-      function getRemoteCountryOwners() {
-        var map = {};
-        if (!state.multi.connected) return map;
-        var players = state.multi.players || {};
-        for (var pid in players) {
-          if (Object.prototype.hasOwnProperty.call(players, pid) && pid !== state.multi.playerId) {
-            var p = players[pid];
-            if (p && Array.isArray(p.ownedIds)) {
-              for (var i = 0; i < p.ownedIds.length; i++) map[p.ownedIds[i]] = p;
-            } else if (p && p.countryId) {
-              map[p.countryId] = p;
-            }
-          }
-        }
-        return map;
-      }
-
-      function buildLocalPlayerPayload() {
-        var activeC = getActiveCountry();
-        var power = activeC ? computeMilitaryPower(activeC) : { attack: 0, defense: 0, count: 0 };
-        var totals = getEmpireTotals();
-        return {
-          id: state.multi.playerId,
-          name: state.cloud.username || 'Commandant',
-          countryId: activeC ? activeC.id : null,
-          countryName: activeC ? activeC.name : 'Aucun pays',
-          ownedIds: state.ownedIds,
-          devLevel: activeC ? ensureCountryState(activeC).devLevel : 1,
-          knowledge: Math.floor(totals.knowledge),
-          gold: Math.floor(totals.gold),
-          soldiers: power.count,
-          attack: power.attack,
-          defense: power.defense,
-          updatedAt: Date.now()
-        };
-      }
-
-      function connectToMultiplayerRoom(code) {
-        var cleanCode = (code || '').trim().toUpperCase();
-        if (!cleanCode) return;
-        state.multi.roomCode = cleanCode;
-        state.multi.connected = true;
-        pushCloudSave(false);
-
-        if (roomUnsub) { try { roomUnsub(); } catch (e) {} roomUnsub = null; }
-        if (chatUnsub) { try { chatUnsub(); } catch (e) {} chatUnsub = null; }
-
-        if (fbDb) {
-          try {
-            roomUnsub = fbDb.collection('rooms').doc(cleanCode).collection('players').onSnapshot(function (snap) {
-              var map = {};
-              snap.forEach(function (d) { map[d.id] = d.data(); });
-              state.multi.players = map;
-              refreshMapStyles();
-              renderMapCard();
-              if (state.multi.open) renderMultiPanel();
-            }, function () {});
-
-            chatUnsub = fbDb.collection('rooms').doc(cleanCode).collection('chat').onSnapshot(function (snap) {
-              var list = [];
-              snap.forEach(function (d) { list.push(d.data()); });
-              list.sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
-              state.multi.chat = list.slice(-25);
-              if (state.multi.open) renderMultiPanel();
-            }, function () {});
-          } catch (e) {}
-        }
-
-        syncMultiplayerPresence();
-        renderMultiPanel();
-      }
-
-      function syncMultiplayerPresence() {
-        if (!state.multi.connected || !state.multi.roomCode) return;
-        var cleanCode = state.multi.roomCode;
-        var payload = buildLocalPlayerPayload();
-
-        // Synchronisation Firestore
-        if (fbDb) {
-          fbDb.collection('rooms').doc(cleanCode).collection('players').doc(state.multi.playerId).set(payload).catch(function () {});
-          var inboxDoc = fbDb.collection('rooms').doc(cleanCode).collection('inbox').doc(state.multi.playerId);
-          inboxDoc.get().then(function (snap) {
-            if (!snap || !snap.exists) return;
-            var data = snap.data();
-            var events = Array.isArray(data.events) ? data.events : [];
-            if (events.length > 0 && state.ownedIds.length > 0) {
-              applyIncomingRoomEvents(events);
-              inboxDoc.delete().catch(function () {});
-            }
-          }).catch(function () {});
-        }
-
-        // Synchronisation Realtime Database REST (fallback universel)
-        var rtBase = 'https://guerre-des-pays-default-rtdb.europe-west1.firebasedatabase.app/rooms/' + cleanCode;
-        fetch(rtBase + '/players/' + state.multi.playerId + '.json', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }).catch(function () {});
-
-        fetch(rtBase + '/players.json')
-          .then(function (r) { return r.ok ? r.json() : null; })
-          .then(function (allPlayers) {
-            if (allPlayers && typeof allPlayers === 'object') {
-              state.multi.players = allPlayers;
-              refreshMapStyles();
-              renderMapCard();
-              if (state.multi.open) renderMultiPanel();
-            }
-          }).catch(function () {});
-
-        fetch(rtBase + '/chat.json')
-          .then(function (r) { return r.ok ? r.json() : null; })
-          .then(function (allChat) {
-            if (allChat && typeof allChat === 'object') {
-              var list = Object.values(allChat);
-              list.sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
-              state.multi.chat = list.slice(-25);
-              if (state.multi.open) renderMultiPanel();
-            }
-          }).catch(function () {});
-
-        fetch(rtBase + '/inbox/' + state.multi.playerId + '.json')
-          .then(function (r) { return r.ok ? r.json() : null; })
-          .then(function (inboxObj) {
-            if (inboxObj && typeof inboxObj === 'object' && state.ownedIds.length > 0) {
-              var evList = Object.values(inboxObj);
-              if (evList.length > 0) {
-                applyIncomingRoomEvents(evList);
-                fetch(rtBase + '/inbox/' + state.multi.playerId + '.json', { method: 'DELETE' }).catch(function () {});
-              }
-            }
-          }).catch(function () {});
-      }
-
-      function applyIncomingRoomEvents(events) {
-        var activeC = getActiveCountry();
-        if (!activeC) return;
-        var cs = ensureCountryState(activeC);
-        for (var i = 0; i < events.length; i++) {
-          var ev = events[i];
-          if (!ev) continue;
-          if (ev.type === 'gift_gold') cs.gold += Number(ev.amount) || 0;
-          if (ev.type === 'genius_visit') {
-            cs.knowledge += Number(ev.bonus) || 15;
-            cs.totalKnowledgeEarned += Number(ev.bonus) || 15;
-          }
-          if (ev.type === 'under_attack') {
-            var loot = Math.min(Math.floor(cs.gold * 0.25), Number(ev.loot) || 0);
-            cs.gold = Math.max(0, cs.gold - loot);
-            applySoldierCasualties(activeC, ev.defenderLossRatio || 0.25);
-          }
-        }
-        pushCloudSave(true);
-        updateHeaderHud();
-      }
-
-      function sendRoomInboxAndChat(targetPlayerId, eventObj, chatText) {
-        if (!state.multi.connected || !state.multi.roomCode) return;
-        var cleanCode = state.multi.roomCode;
-        var rtBase = 'https://guerre-des-pays-default-rtdb.europe-west1.firebasedatabase.app/rooms/' + cleanCode;
-
-        if (targetPlayerId && eventObj) {
-          fetch(rtBase + '/inbox/' + targetPlayerId + '.json', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(eventObj)
-          }).catch(function () {});
-
-          if (fbDb) {
-            var inboxDoc = fbDb.collection('rooms').doc(cleanCode).collection('inbox').doc(targetPlayerId);
-            inboxDoc.get().then(function (snap) {
-              var existing = snap && snap.exists && Array.isArray(snap.data().events) ? snap.data().events : [];
-              existing.push(eventObj);
-              inboxDoc.set({ events: existing }).catch(function () {});
-            }).catch(function () {});
-          }
-        }
-        if (chatText) {
-          var msg = { sender: 'Système', text: chatText, isEvent: true, ts: Date.now() };
-          fetch(rtBase + '/chat.json', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(msg)
-          }).catch(function () {});
-          if (fbDb) {
-            fbDb.collection('rooms').doc(cleanCode).collection('chat').add(msg).catch(function () {});
-          }
-        }
-      }
-
-      function sendChatMessage(text) {
-        var clean = (text || '').trim();
-        if (!clean || !state.multi.connected || !state.multi.roomCode) return;
-        var cleanCode = state.multi.roomCode;
-        var msg = {
-          sender: state.cloud.username || 'Commandant',
-          text: clean.slice(0, 180),
-          isEvent: false,
-          ts: Date.now()
-        };
-        fetch('https://guerre-des-pays-default-rtdb.europe-west1.firebasedatabase.app/rooms/' + cleanCode + '/chat.json', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(msg)
-        }).then(function () {
-          syncMultiplayerPresence();
-        }).catch(function () {});
-
-        if (fbDb) {
-          fbDb.collection('rooms').doc(cleanCode).collection('chat').add(msg).catch(function () {});
-        }
-      }
-
-      function sendChatMessage(text) {
-        var clean = (text || '').trim();
-        if (!clean || !state.multi.connected || !fbDb || !fbUser) return;
-        var chatCol = collection(fbDb, 'artifacts', appId, 'public', 'data', 'room_' + state.multi.roomCode + '_chat');
-        addDoc(chatCol, {
-          sender: state.cloud.username || 'Commandant',
-          text: clean.slice(0, 180),
-          isEvent: false,
-          ts: Date.now()
-        }).catch(function () {});
-      }
-
-      function sendGoldGiftToPlayer(targetPlayer, amount) {
-        var activeC = getActiveCountry();
-        if (!activeC || !targetPlayer) return;
-        var cs = ensureCountryState(activeC);
-        if (cs.gold < amount) return;
-        cs.gold -= amount;
-        sendRoomInboxAndChat(targetPlayer.id, { type: 'gift_gold', amount: amount },
-          '🎁 ' + (state.cloud.username || 'Un allié') + ' a envoyé ' + formatFr(amount) + ' or à ' + targetPlayer.name + ' !');
-        pushCloudSave(true);
-        updateHeaderHud();
-        renderMapCard();
-      }
-
-      function sendGeniusToFriendCountry(targetPlayer) {
-        var activeC = getActiveCountry();
-        if (!activeC || !targetPlayer || !targetPlayer.countryId) return;
-        var cs = ensureCountryState(activeC);
-        if (cs.genius.activeMission || cs.gold < 150000) return;
-        var targetCountry = getCountryById(targetPlayer.countryId);
-        if (!targetCountry) return;
-
-        cs.gold -= 150000;
-        var reward = 45 + (Number(targetPlayer.devLevel) || 1) * 12;
-        cs.genius.activeMission = {
-          missionId: 'foreign_voyage',
-          title: 'Visite chez ' + targetPlayer.name,
-          targetId: targetCountry.id,
-          targetName: targetCountry.name + ' (' + targetPlayer.name + ')',
-          startedAt: Date.now(),
-          durationMs: 180 * 1000,
-          reward: reward
-        };
-        sendRoomInboxAndChat(targetPlayer.id, { type: 'genius_visit', bonus: 15 },
-          '🧠 Le Génie de ' + (state.cloud.username || 'Un allié') + ' rend visite à ' + targetPlayer.name + ' (' + targetCountry.name + ') !');
-        pushCloudSave(true);
-        updateHeaderHud();
-        refreshMapStyles();
-        renderRoutesOnMap();
-        renderMapCard();
-      }
-
-      function renderMultiPanel() {
-        var panel = document.getElementById('multi-panel');
-        var btnLabel = document.getElementById('multi-btn-label');
-        var btnToggle = document.getElementById('btn-multi-toggle');
-        if (!panel) return;
-
-        if (btnToggle && btnLabel) {
-          btnToggle.classList.toggle('multi-active', state.multi.connected);
-          btnLabel.textContent = state.multi.connected ? ('Salon ' + state.multi.roomCode) : 'Multijoueur';
-        }
-
-        if (!state.multi.open) {
-          panel.style.display = 'none';
-          return;
-        }
-        panel.style.display = 'block';
-
-        if (!state.multi.connected) {
-          panel.innerHTML =
-            '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
-              '<div style="font-weight:900;font-size:16px;">🌐 Jouer en ligne avec tes potes</div>' +
-              '<button type="button" class="modal-close" id="close-multi-panel">✕</button>' +
-            '</div>' +
-            '<p style="margin:4px 0 0;font-size:13px;color:var(--mute);">Crée un salon privé en ligne pour obtenir un code à partager sur WhatsApp/Discord, ou rejoins la partie d’un pote.</p>' +
-            '<div class="multi-grid">' +
-              '<div class="multi-box">' +
-                '<div style="font-weight:800;font-size:13.5px;">1. Créer un nouveau salon</div>' +
-                '<p style="margin:0;font-size:12.5px;color:var(--mute);">Génère un code court (ex : GP48K2) pour synchroniser la carte avec tes potes.</p>' +
-                '<button type="button" class="primary-btn" id="btn-create-room">Créer un salon privé</button>' +
-              '</div>' +
-              '<div class="multi-box">' +
-                '<div style="font-weight:800;font-size:13.5px;">2. Rejoindre le salon d’un pote</div>' +
-                '<input type="text" class="multi-input" id="multi-join-code" maxlength="8" placeholder="Ex : GP48K2" style="text-transform:uppercase;" />' +
-                '<button type="button" class="primary-btn secondary" id="btn-join-room">Rejoindre la partie</button>' +
-              '</div>' +
-            '</div>';
-
-          document.getElementById('close-multi-panel').addEventListener('click', function () {
-            state.multi.open = false;
-            renderMultiPanel();
-          });
-          document.getElementById('btn-create-room').addEventListener('click', function () {
-            connectToMultiplayerRoom(generateRoomCode());
-          });
-          document.getElementById('btn-join-room').addEventListener('click', function () {
-            var codeVal = (document.getElementById('multi-join-code').value || '').trim().toUpperCase();
-            if (codeVal) connectToMultiplayerRoom(codeVal);
-          });
-          return;
-        }
-
-        var playersList = Object.values(state.multi.players || {});
-        if (playersList.length === 0) playersList.push(buildLocalPlayerPayload());
-        var playersHtml = '';
-        for (var p = 0; p < playersList.length; p++) {
-          var pl = playersList[p];
-          var isMe = pl.id === state.multi.playerId;
-          playersHtml +=
-            '<div class="player-row">' +
-              '<div><b>' + (pl.name || 'Joueur') + (isMe ? ' (Toi)' : '') + '</b> · ' + (pl.countryName || 'Sans pays') + ' (Niv. ' + (pl.devLevel || 1) + ')</div>' +
-              '<span class="stat-pill blue">⚔️ ' + formatFr(pl.soldiers || 0) + ' · 🧠 ' + formatFr(pl.knowledge || 0) + '</span>' +
-            '</div>';
-        }
-
-        var chatHtml = '';
-        var msgs = state.multi.chat || [];
-        if (msgs.length === 0) {
-          chatHtml = '<div style="color:var(--mute);font-size:12px;">Aucun message pour le moment.</div>';
-        } else {
-          for (var m = 0; m < msgs.length; m++) {
-            chatHtml += '<div class="chat-msg' + (msgs[m].isEvent ? ' event' : '') + '"><b>' + msgs[m].sender + ' :</b> ' + msgs[m].text + '</div>';
-          }
-        }
-
-        panel.innerHTML =
-          '<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;">' +
-            '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
-              '<span style="font-weight:900;font-size:15.5px;">🌐 Salon en ligne</span>' +
-              '<span class="room-code-badge">' + state.multi.roomCode + '</span>' +
-              '<button type="button" class="stat-pill" id="btn-copy-room-code" style="cursor:pointer;">📋 Copier le code</button>' +
-            '</div>' +
-            '<div style="display:flex;gap:6px;">' +
-              '<button type="button" class="primary-btn danger" id="btn-leave-room" style="padding:6px 10px;font-size:12px;">Quitter</button>' +
-              '<button type="button" class="modal-close" id="close-multi-panel">✕</button>' +
-            '</div>' +
-          '</div>' +
-          '<div class="multi-grid">' +
-            '<div class="multi-box">' +
-              '<div style="font-weight:800;font-size:13.5px;">👥 Joueurs dans le salon (' + playersList.length + ')</div>' +
-              '<div style="display:flex;flex-direction:column;gap:6px;">' + playersHtml + '</div>' +
-            '</div>' +
-            '<div class="multi-box">' +
-              '<div style="font-weight:800;font-size:13.5px;">💬 Tchat & Journal des batailles</div>' +
-              '<div class="chat-feed" id="multi-chat-feed">' + chatHtml + '</div>' +
-              '<div style="display:flex;gap:6px;">' +
-                '<input type="text" class="multi-input" id="multi-chat-input" maxlength="180" placeholder="Écrire un message..." />' +
-                '<button type="button" class="primary-btn secondary" id="btn-send-chat" style="padding:8px 14px;font-size:13px;">Envoyer</button>' +
-              '</div>' +
-            '</div>' +
-          '</div>';
-
-        var chatFeed = document.getElementById('multi-chat-feed');
-        if (chatFeed) chatFeed.scrollTop = chatFeed.scrollHeight;
-
-        document.getElementById('close-multi-panel').addEventListener('click', function () {
-          state.multi.open = false;
-          renderMultiPanel();
-        });
-        document.getElementById('btn-copy-room-code').addEventListener('click', function () {
-          var tmp = document.createElement('input');
-          tmp.value = state.multi.roomCode;
-          document.body.appendChild(tmp);
-          tmp.select();
-          try { document.execCommand('copy'); } catch (e) {}
-          document.body.removeChild(tmp);
-          this.textContent = '✓ Copié';
-        });
-        document.getElementById('btn-leave-room').addEventListener('click', function () {
-          if (roomUnsub) { try { roomUnsub(); } catch (e) {} roomUnsub = null; }
-          if (chatUnsub) { try { chatUnsub(); } catch (e) {} chatUnsub = null; }
-          state.multi.connected = false;
-          state.multi.roomCode = '';
-          state.multi.players = {};
-          pushCloudSave(false);
-          refreshMapStyles();
-          renderMapCard();
-          renderMultiPanel();
-        });
-        document.getElementById('btn-send-chat').addEventListener('click', function () {
-          var inp = document.getElementById('multi-chat-input');
-          if (inp && inp.value.trim()) {
-            sendChatMessage(inp.value);
-            inp.value = '';
-          }
-        });
-        document.getElementById('multi-chat-input').addEventListener('keydown', function (e) {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            var val = this.value;
-            this.value = '';
-            sendChatMessage(val);
-          }
-        });
-      }
-
-      document.getElementById('btn-multi-toggle').addEventListener('click', function () {
-        state.multi.open = !state.multi.open;
-        renderMultiPanel();
-      });
-
-      // =========================================================================
-      // 12. NAVIGATION MULTI-PAYS, FICHE SOUS LA CARTE & MODALE CLOUD
-      // =========================================================================
-      var tabMapBtn = document.getElementById('tab-map');
-      var ownedTabsContainer = document.getElementById('owned-tabs-container');
-      var viewMap = document.getElementById('view-map');
-      var viewCountry = document.getElementById('view-country');
-
-      function updateNavigationUI() {
-        ownedTabsContainer.innerHTML = '';
-        for (var i = 0; i < state.ownedIds.length; i++) {
-          var oc = getCountryById(state.ownedIds[i]);
-          if (!oc) continue;
-          var btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'tab-btn' + (state.activeTab === 'country' && state.activeOwnedId === oc.id ? ' active' : '');
-          btn.textContent = '🏳️ ' + oc.name;
-          btn.setAttribute('data-cid', oc.id);
-          btn.addEventListener('click', function () {
-            switchTab('country', this.getAttribute('data-cid'));
-          });
-          ownedTabsContainer.appendChild(btn);
-        }
-
-        if (state.ownedIds.length === 0) state.activeTab = 'map';
-        tabMapBtn.classList.toggle('active', state.activeTab === 'map');
-        viewMap.style.display = state.activeTab === 'map' ? 'block' : 'none';
-        viewCountry.style.display = state.activeTab === 'country' ? 'block' : 'none';
-        updateHeaderHud();
-      }
-
-      function switchTab(tabName, countryId) {
-        if (tabName === 'country') {
-          if (state.ownedIds.length === 0) return;
-          if (countryId && isCountryOwned(countryId)) state.activeOwnedId = countryId;
-          else if (!state.activeOwnedId || !isCountryOwned(state.activeOwnedId)) state.activeOwnedId = state.ownedIds[0];
-        }
-        state.activeTab = tabName;
-        updateNavigationUI();
-        if (tabName === 'country') renderCountryView();
-        else renderMapCard();
-        pushCloudSave(false);
-      }
-
-      tabMapBtn.addEventListener('click', function () { switchTab('map'); });
-
-      function updateHeaderHud() {
-        var goldPill = document.getElementById('hud-gold-pill');
-        var knowPill = document.getElementById('hud-know-pill');
-        if (state.ownedIds.length === 0) {
-          goldPill.style.display = 'none';
-          knowPill.style.display = 'none';
-          return;
-        }
-        var totals = getEmpireTotals();
-        goldPill.style.display = 'inline-flex';
-        knowPill.style.display = 'inline-flex';
-        document.getElementById('hud-gold').textContent = formatFr(totals.gold);
-        document.getElementById('hud-rate').textContent = '+' + formatFr(totals.rate) + ' or/s';
-        document.getElementById('hud-know').textContent = formatFr(totals.knowledge);
-
-        var activeC = getActiveCountry();
-        var countryGoldEl = document.getElementById('country-gold-val');
-        if (activeC && countryGoldEl) {
-          countryGoldEl.textContent = '🪙 ' + formatFr(ensureCountryState(activeC).gold) + ' or';
-        }
-      }
-
-      var cardFlag = document.getElementById('card-flag');
-      var cardTitle = document.getElementById('card-title');
-      var cardSub = document.getElementById('card-sub');
-      var cardPills = document.getElementById('card-pills');
-      var cardAction = document.getElementById('card-action');
-
-      function renderMapCard() {
-        var current = getCountryById(state.selectedId);
-        var existingCombatBox = document.getElementById('combat-sim-container');
-        if (existingCombatBox) existingCombatBox.remove();
-
-        if (!current) {
-          cardFlag.innerHTML = '';
-          cardTitle.textContent = 'Choisis ton pays de départ';
-          cardSub.textContent = 'Touche un pays sur la carte : il démarre gratuitement avec 2 mines d’or (+4 or/s), 1 ferme, 1 troupe et ton Génie.';
-          cardPills.style.display = 'none';
-          cardAction.style.display = 'none';
-          return;
-        }
-
-        var maxFarms = calcFarmsForSoldiers(current.maxSoldiers);
-        var devInfo = DEV_LEVELS[current.dev] || DEV_LEVELS[3];
-        var remoteOwners = getRemoteCountryOwners();
-        var remoteOwner = remoteOwners[current.id];
-
-        cardFlag.innerHTML = getFlagSvg(current.id, 'flag-svg-sm');
-        cardTitle.textContent = current.name + (remoteOwner ? (' — Contrôlé par ' + remoteOwner.name) : '');
-        cardSub.textContent = remoteOwner
-          ? ('Joueur en ligne : ' + remoteOwner.name + ' · Niv. ' + (remoteOwner.devLevel || 1) + ' · ' + formatFr(remoteOwner.soldiers || 0) + ' soldats')
-          : (current.region + ' · Développement initial : Niveau ' + current.dev + '/5 (' + devInfo.label + ')');
-
-        cardPills.style.display = 'flex';
-        cardPills.innerHTML =
-          '<span class="stat-pill">🏛️ Niv. ' + (remoteOwner ? remoteOwner.devLevel : current.dev) + '/5 · ' + devInfo.count + ' troupes uniques</span>' +
-          '<span class="stat-pill gold">⛏️ Mines max : ' + formatFr(current.maxMines) + '</span>' +
-          '<span class="stat-pill green">🌾 Fermes max : ' + formatFr(maxFarms) + '</span>' +
-          '<span class="stat-pill blue">⚔️ Soldats max : ' + formatFr(current.maxSoldiers) + '</span>';
-
-        if (state.ownedIds.length === 0) {
-          cardAction.style.display = 'inline-block';
-          if (remoteOwner) {
-            cardAction.textContent = 'Déjà pris par ' + remoteOwner.name;
-            cardAction.className = 'primary-btn secondary';
-            cardAction.disabled = true;
-          } else {
-            cardAction.textContent = 'Choisir gratuitement';
-            cardAction.className = 'primary-btn';
-            cardAction.disabled = false;
-          }
-          return;
-        }
-
-        if (isCountryOwned(current.id)) {
-          cardAction.style.display = 'inline-block';
-          cardAction.textContent = 'Ouvrir ' + current.name + ' →';
-          cardAction.className = 'primary-btn secondary';
-          cardAction.disabled = false;
-          return;
-        }
-
-        // Pays étranger (joueur en ligne ou neutre) -> Attaque avec temps réel en jours + Annexion
-        cardAction.style.display = 'none';
-        var activeC = getActiveCountry();
-        var activeCs = ensureCountryState(activeC);
-        var myPow = computeMilitaryPower(activeC);
-        var travelSec = calcMilitaryTravelSeconds(activeC, current);
-
-        var box = document.createElement('div');
-        box.id = 'combat-sim-container';
-        box.className = 'combat-preview-box';
-
-        if (remoteOwner) {
-          var enemyDef = Math.max(10, Number(remoteOwner.defense) || 50);
-          var winPct = Math.max(5, Math.min(95, Math.round((myPow.attack / (myPow.attack + enemyDef)) * 100)));
-          box.innerHTML =
-            '<div style="font-weight:900;font-size:14.5px;color:#7f1d1d;">⚔️ Offensive depuis ' + activeC.name + ' vers ' + remoteOwner.name + ' (' + current.name + ')</div>' +
-            '<div class="pills-row" style="margin-bottom:10px;">' +
-              '<span class="stat-pill blue">Ton attaque : ' + formatFr(myPow.attack) + '</span>' +
-              '<span class="stat-pill">Défense ennemie : ' + formatFr(enemyDef) + '</span>' +
-              '<span class="stat-pill red">⏱️ Trajet réel : ' + formatDuration(travelSec) + '</span>' +
-              '<span class="stat-pill green">Chances : ' + winPct + ' %</span>' +
-            '</div>' +
-            '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
-              '<button type="button" class="primary-btn danger" id="btn-launch-attack" style="padding:10px 14px;font-size:13px;">⚔️ Lancer l’attaque (' + formatDuration(travelSec) + ')</button>' +
-              '<button type="button" class="primary-btn" id="btn-gift-player" style="padding:10px 14px;font-size:13px;"' + (activeCs.gold >= 100000 ? '' : ' disabled') + '>🎁 Donner 100 000 or</button>' +
-              '<button type="button" class="primary-btn purple" id="btn-genius-friend" style="padding:10px 14px;font-size:13px;"' + (!activeCs.genius.activeMission && activeCs.gold >= 150000 ? '' : ' disabled') + '>🧠 Envoyer Génie (150 000 or)</button>' +
-            '</div>' +
-            (state.multi.lastCombatReport ? '<div style="margin-top:8px;font-size:13px;font-weight:800;color:#0f172a;">' + state.multi.lastCombatReport + '</div>' : '');
-
-          document.getElementById('map-card').appendChild(box);
-          document.getElementById('btn-launch-attack').addEventListener('click', function () { launchMilitaryCampaign(activeC, current, remoteOwner); });
-          document.getElementById('btn-gift-player').addEventListener('click', function () { sendGoldGiftToPlayer(remoteOwner, 100000); });
-          document.getElementById('btn-genius-friend').addEventListener('click', function () { sendGeniusToFriendCountry(remoteOwner); });
-        } else {
-          var garrison = getNeutralGarrison(current);
-          var nWinPct = Math.max(8, Math.min(96, Math.round((myPow.attack / (myPow.attack + Math.max(10, garrison.defense))) * 100)));
-          var annexCost = calcAnnexationCost(current, state.ownedIds.length);
-          var garrisonBroken = garrison.soldiers <= Math.ceil(garrison.maxSoldiers * 0.25);
-          var canAnnex = garrisonBroken && activeCs.gold >= annexCost;
-
-          box.innerHTML =
-            '<div style="font-weight:900;font-size:14.5px;color:#7f1d1d;">⚔️ Invasion & Annexion de ' + current.name + ' (depuis ' + activeC.name + ')</div>' +
-            '<div class="pills-row" style="margin-bottom:10px;">' +
-              '<span class="stat-pill blue">Ton attaque : ' + formatFr(myPow.attack) + '</span>' +
-              '<span class="stat-pill">Garnison : ' + formatFr(garrison.soldiers) + ' soldats</span>' +
-              '<span class="stat-pill red">⏱️ Temps de marche : ' + formatDuration(travelSec) + '</span>' +
-              '<span class="stat-pill green">Victoire : ' + nWinPct + ' %</span>' +
-              '<span class="stat-pill gold">👑 Annexion : ' + formatFr(annexCost) + ' or</span>' +
-            '</div>' +
-            '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">' +
-              '<button type="button" class="primary-btn danger" id="btn-launch-neutral" style="padding:10px 14px;font-size:13px;">⚔️ Attaquer (' + formatDuration(travelSec) + ')</button>' +
-              '<button type="button" class="primary-btn" id="btn-annex-country" style="padding:10px 14px;font-size:13px;"' + (canAnnex ? '' : ' disabled') + '>👑 Prendre le contrôle (' + formatFr(annexCost) + ' or)</button>' +
-            '</div>' +
-            '<div style="margin-top:6px;font-size:12px;color:#7f1d1d;">' +
-              (garrisonBroken
-                ? '✓ Garnison ennemie brisée ! Paie le tribut colossal de ' + formatFr(annexCost) + ' or pour annexer ce pays.'
-                : 'Affaiblis d’abord la garnison à ≤ 25 % (' + formatFr(Math.ceil(garrison.maxSoldiers * 0.25)) + ' soldats max) avant de pouvoir annexer le pays.') +
-            '</div>' +
-            (state.multi.lastCombatReport ? '<div style="margin-top:8px;font-size:13px;font-weight:800;color:#0f172a;">' + state.multi.lastCombatReport + '</div>' : '');
-
-          document.getElementById('map-card').appendChild(box);
-          document.getElementById('btn-launch-neutral').addEventListener('click', function () { launchMilitaryCampaign(activeC, current, null); });
-          document.getElementById('btn-annex-country').addEventListener('click', function () { annexCountry(current); });
-        }
-      }
-
-      cardAction.addEventListener('click', function () {
-        if (!state.selectedId) return;
-        var remoteOwners = getRemoteCountryOwners();
-        if (state.ownedIds.length === 0) {
-          if (remoteOwners[state.selectedId]) return;
-          state.ownedIds = [state.selectedId];
-          state.activeOwnedId = state.selectedId;
-          ensureCountryState(getCountryById(state.selectedId));
-          pushCloudSave(true);
-          if (state.multi.connected) syncMultiplayerPresence();
-          refreshMapStyles();
-          switchTab('country', state.selectedId);
-        } else if (isCountryOwned(state.selectedId)) {
-          switchTab('country', state.selectedId);
-        }
-      });
-
-      // Modale Cloud (Pseudo + PIN à 4 chiffres)
-      var cloudModal = document.getElementById('cloud-modal');
-      var tabAuthLogin = document.getElementById('tab-auth-login');
-      var tabAuthRegister = document.getElementById('tab-auth-register');
-      var btnCloudSubmit = document.getElementById('btn-cloud-submit');
-      var cloudFeedback = document.getElementById('cloud-feedback');
-
-      function setAuthTab(mode) {
-        state.cloud.authMode = mode;
-        tabAuthLogin.classList.toggle('active', mode === 'login');
-        tabAuthRegister.classList.toggle('active', mode === 'register');
-        btnCloudSubmit.textContent = mode === 'login' ? 'Charger ma sauvegarde' : 'Créer mon profil & Sauvegarder';
-        cloudFeedback.textContent = '';
-      }
-
-      tabAuthLogin.addEventListener('click', function () { setAuthTab('login'); });
-      tabAuthRegister.addEventListener('click', function () { setAuthTab('register'); });
-
-      document.getElementById('btn-cloud-modal').addEventListener('click', function () {
-        cloudFeedback.textContent = '';
-        if (state.cloud.username) document.getElementById('cloud-username').value = state.cloud.username;
-        if (state.cloud.pin) document.getElementById('cloud-pin').value = state.cloud.pin;
-        cloudModal.classList.add('open');
-      });
-
-      document.getElementById('close-cloud-modal').addEventListener('click', function () {
-        cloudModal.classList.remove('open');
-      });
-
-      document.getElementById('btn-play-guest').addEventListener('click', function () {
-        cloudModal.classList.remove('open');
-      });
-
-      document.getElementById('cloud-auth-form').addEventListener('submit', function (e) {
-        e.preventDefault();
-        var userVal = (document.getElementById('cloud-username').value || '').trim();
-        var pinVal = (document.getElementById('cloud-pin').value || '').trim();
-        if (!userVal || !/^[0-9]{4}$/.test(pinVal)) {
-          cloudFeedback.style.color = '#dc2626';
-          cloudFeedback.textContent = 'Entre un pseudo valide et un code PIN de 4 chiffres.';
-          return;
-        }
-        cloudFeedback.style.color = '#0284c7';
-        cloudFeedback.textContent = 'Connexion en cours...';
-
-        if (state.cloud.authMode === 'login') {
-          pullCloudSave(userVal, pinVal, false).then(function (res) {
-            if (res.ok) {
-              cloudFeedback.style.color = '#15803d';
-              cloudFeedback.textContent = '✓ Partie restaurée avec succès !';
-              setTimeout(function () { cloudModal.classList.remove('open'); }, 500);
-            } else {
-              cloudFeedback.style.color = '#dc2626';
-              cloudFeedback.textContent = res.reason;
-            }
-          });
-        } else {
-          registerCloudSave(userVal, pinVal).then(function (res) {
-            if (res.ok) {
-              cloudFeedback.style.color = '#15803d';
-              cloudFeedback.textContent = '✓ Profil créé ! Ta partie est sauvegardée automatiquement.';
-              setTimeout(function () { cloudModal.classList.remove('open'); }, 500);
-            } else {
-              cloudFeedback.style.color = '#dc2626';
-              cloudFeedback.textContent = res.reason;
-            }
-          });
-        }
-      });
-
-      document.getElementById('btn-cloud-sync-now').addEventListener('click', function () {
-        pushCloudSave(true);
-        cloudFeedback.style.color = '#15803d';
-        cloudFeedback.textContent = '✓ Synchronisation Cloud effectuée !';
-      });
-
-      document.getElementById('btn-cloud-logout').addEventListener('click', function () {
-        state.cloud.connected = false;
-        state.cloud.username = '';
-        state.cloud.pin = '';
-        try { localStorage.removeItem(LOCAL_CACHE_KEY); } catch (e) {}
-        updateCloudHudStatus();
-        cloudFeedback.style.color = '#475569';
-        cloudFeedback.textContent = 'Déconnecté du profil Cloud.';
-      });
-
-      document.getElementById('close-offline-toast').addEventListener('click', function () {
-        document.getElementById('offline-toast').style.display = 'none';
-      });
-
-      // =========================================================================
-      // 13. BOUCLES TEMPS RÉEL (REVENUS, GÉNIE, CAMPAGNES, SYNC CLOUD)
-      // =========================================================================
-      setInterval(function () {
-        if (state.ownedIds.length === 0) return;
-
-        for (var i = 0; i < state.ownedIds.length; i++) {
-          var owned = getCountryById(state.ownedIds[i]);
-          if (!owned) continue;
-          var cs = ensureCountryState(owned);
-          cs.gold += cs.mines * MINE_RATE;
-
-          if (cs.genius.activeMission) {
-            var am = cs.genius.activeMission;
-            var rem = (am.startedAt + am.durationMs - Date.now()) / 1000;
-            if (rem <= 0) {
-              completeGeniusMission(owned, owned.id !== state.activeOwnedId);
-            } else if (owned.id === state.activeOwnedId) {
-              var timerBadge = document.getElementById('genius-timer-badge');
-              var progFill = document.getElementById('genius-progress-fill');
-              if (timerBadge) timerBadge.textContent = '⏱️ ' + formatDuration(rem);
-              if (progFill) {
-                var pct = Math.min(100, Math.max(0, Math.round(((Date.now() - am.startedAt) / am.durationMs) * 100)));
-                progFill.style.width = pct + '%';
-              }
-            }
-          }
-        }
-
-        updateHeaderHud();
-        renderRoutesOnMap();
-
-        if (state.campaigns.length > 0) {
-          resolveArrivedCampaigns(false);
-          for (var c = 0; c < state.campaigns.length; c++) {
-            var camp = state.campaigns[c];
-            var badge = document.querySelector('[data-camp-timer="' + camp.id + '"]');
-            if (badge) {
-              var cRem = Math.max(0, (camp.startedAt + camp.durationMs - Date.now()) / 1000);
-              badge.textContent = '⏱️ Impact dans ' + formatDuration(cRem);
-            }
-          }
-        }
-      }, 1000);
-
-      // Synchronisation Cloud & Multijoueur toutes les 8 secondes
-      setInterval(function () {
-        pushCloudSave(false);
-        if (state.multi.connected) syncMultiplayerPresence();
-      }, 8000);
-
-      document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState === 'hidden') pushCloudSave(false);
-      });
-      window.addEventListener('pagehide', function () { pushCloudSave(false); });
-      window.addEventListener('beforeunload', function () { pushCloudSave(false); });
-
-      // =========================================================================
-      // 14. INITIALISATION IMMÉDIATE AU CHARGEMENT
-      // =========================================================================
-      var hasCachedSession = false;
-      try {
-        var cachedRaw = localStorage.getItem(LOCAL_CACHE_KEY);
-        if (cachedRaw) {
-          var cached = JSON.parse(cachedRaw);
-          if (cached && cached.save) applySaveObject(cached.save);
-          if (cached && cached.cloud && cached.cloud.username && cached.cloud.pin) {
-            state.cloud.username = cached.cloud.username;
-            state.cloud.pin = cached.cloud.pin;
-            state.cloud.connected = true;
-            hasCachedSession = true;
-          }
-        }
-      } catch (e) {}
-
-      buildMapSvg();
-      applyViewBox();
-      processOfflineProgress();
-      updateNavigationUI();
-      updateCloudHudStatus();
-      renderCampaignsPanel();
-      renderMultiPanel();
-
-      if (state.multi.connected && state.multi.roomCode) {
-        connectToMultiplayerRoom(state.multi.roomCode);
-      }
-
-      if (state.activeTab === 'country' && state.ownedIds.length > 0) {
-        renderCountryView();
+        authUser = { pseudo, pin };
+        await saveGame();
       } else {
-        renderMapCard();
+        if (!snap.exists) {
+          msg.style.color = "#dc2626";
+          msg.textContent = "Aucun compte trouvé. Clique sur « Nouvelle partie ».";
+          return;
+        }
+        const data = snap.data();
+        if (data.pin !== pin) {
+          msg.style.color = "#dc2626";
+          msg.textContent = "Code PIN incorrect.";
+          return;
+        }
+        authUser = { pseudo, pin };
+        state = Object.assign(state, data.state);
+        const offlineSec = Math.min(86400, Math.floor((Date.now() - (state.lastTick || Date.now())) / 1000));
+        processElapsed(offlineSec);
       }
+    } else {
+      throw new Error("offline");
+    }
+  } catch (e) {
+    authUser = { pseudo, pin };
+    const localRaw = localStorage.getItem("gdp_save_" + key);
+    if (authMode === "login" && localRaw) {
+      const parsed = JSON.parse(localRaw);
+      if (parsed.pin === pin) {
+        state = Object.assign(state, parsed.state);
+        const offlineSec = Math.min(86400, Math.floor((Date.now() - (state.lastTick || Date.now())) / 1000));
+        processElapsed(offlineSec);
+      }
+    } else {
+      await saveGame();
+    }
+  }
 
-      // Si le navigateur a réinitialisé la mémoire locale (nouvelle ouverture), ouvrir l'écran de connexion rapide Pseudo + PIN
-      if (!hasCachedSession && state.ownedIds.length === 0) {
-        cloudModal.classList.add('open');
-      }
-    })();
-  </script>
+  localStorage.setItem("gdp_last_user", JSON.stringify(authUser));
+  document.getElementById("hud-sync").textContent = `☁️ ${authUser.pseudo}`;
+  closeModal("auth-modal");
+  renderAll();
+}
+
+async function saveGame() {
+  state.lastTick = Date.now();
+  if (!authUser) {
+    localStorage.setItem("gdp_guest", JSON.stringify(state));
+    return;
+  }
+  const key = authUser.pseudo.toLowerCase();
+  localStorage.setItem("gdp_save_" + key, JSON.stringify({ pin: authUser.pin, state }));
+  if (db) {
+    try {
+      await db.collection("players").doc(key).set({
+        pseudo: authUser.pseudo,
+        pin: authUser.pin,
+        state,
+        updatedAt: Date.now()
+      });
+      if (roomCode) syncRoomState();
+    } catch (e) {}
+  }
+}
+
+function createRoom() {
+  const code = Math.random().toString(36).substring(2, 7).toUpperCase();
+  document.getElementById("room-code-input").value = code;
+  joinRoom();
+}
+function joinRoom() {
+  const code = document.getElementById("room-code-input").value.trim().toUpperCase();
+  if (!code) return;
+  roomCode = code;
+  const banner = document.getElementById("banner-room");
+  banner.style.display = "inline-block";
+  banner.textContent = `🌐 Salon : ${roomCode}`;
+  document.getElementById("multi-status").textContent = `Connecté au salon ${roomCode} ! Partage ce code à tes potes.`;
+
+  if (db) {
+    if (roomListener) roomListener();
+    roomListener = db.collection("rooms").doc(roomCode).collection("members").onSnapshot(snap => {
+      const owners = {};
+      const myName = authUser ? authUser.pseudo : "Moi";
+      snap.forEach(doc => {
+        const d = doc.data();
+        if (d.pseudo !== myName && d.owned) {
+          Object.keys(d.owned).forEach(cid => { owners[cid] = d.pseudo; });
+        }
+      });
+      remoteOwners = owners;
+      renderMap();
+    });
+    syncRoomState();
+  }
+}
+async function syncRoomState() {
+  if (!db || !roomCode) return;
+  const myName = authUser ? authUser.pseudo : "Joueur_" + Math.floor(Math.random() * 999);
+  await db.collection("rooms").doc(roomCode).collection("members").doc(myName).set({
+    pseudo: myName,
+    owned: state.owned,
+    updatedAt: Date.now()
+  });
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  initMapInteractions();
+  renderAll();
+  setTimeout(initFirebaseSafe, 100);
+
+  const savedUser = localStorage.getItem("gdp_last_user");
+  if (savedUser) {
+    try {
+      const u = JSON.parse(savedUser);
+      document.getElementById("auth-pseudo").value = u.pseudo || "";
+      document.getElementById("auth-pin").value = u.pin || "";
+    } catch (e) {}
+  }
+  const guest = localStorage.getItem("gdp_guest");
+  if (guest) {
+    try {
+      state = Object.assign(state, JSON.parse(guest));
+      const offlineSec = Math.min(86400, Math.floor((Date.now() - (state.lastTick || Date.now())) / 1000));
+      processElapsed(offlineSec);
+      renderAll();
+    } catch (e) {}
+  } else {
+    openAuthModal();
+  }
+});
+</script>
 </body>
 </html>
