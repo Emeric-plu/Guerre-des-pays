@@ -1,0 +1,3722 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>Carte des Pays</title>
+  <style>
+    :root {
+      --bg-page: #f4f6f9;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --ink: #0f172a;
+      --mute: #64748b;
+      --line: #e2e8f0;
+      --navy: #0f172a;
+      --navy-soft: #1e293b;
+      --accent: #f59e0b;
+      --accent-dark: #d97706;
+      --blue: #0284c7;
+      --green: #16a34a;
+      --purple: #7c3aed;
+      --red: #dc2626;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background: var(--bg-page);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* EN-TÊTE & ONGLETS */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--navy);
+      color: #ffffff;
+      border-bottom: 2px solid var(--accent);
+      padding: 8px 12px;
+    }
+
+    .topbar-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tabs-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      appearance: none;
+      border: 1.5px solid #334155;
+      background: var(--navy-soft);
+      color: #cbd5e1;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 7px 13px;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      border-color: #fde68a;
+      color: #0f172a;
+      box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35);
+    }
+
+    .hud-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .hud-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 800;
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid #334155;
+      color: #f8fafc;
+    }
+
+    .hud-pill.gold {
+      border-color: #f59e0b;
+      color: #fde68a;
+    }
+
+    .hud-rate {
+      color: #4ade80;
+      font-size: 11.5px;
+    }
+
+    .hud-pill.know {
+      border-color: #a855f7;
+      color: #e9d5ff;
+    }
+
+    .hud-btn {
+      appearance: none;
+      border: 1px solid #475569;
+      background: var(--navy-soft);
+      color: #e2e8f0;
+      font-weight: 800;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .hud-btn:hover {
+      background: #334155;
+    }
+
+    .hud-btn.multi-active,
+    .hud-btn.cloud-active {
+      border-color: #4ade80;
+      background: rgba(22, 163, 74, 0.3);
+      color: #bbf7d0;
+    }
+
+    /* CONTENEUR PRINCIPAL */
+    .main-wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 12px;
+    }
+
+    /* ONGLET 1 : CARTE DU MONDE */
+    .map-stage {
+      position: relative;
+      width: 100%;
+      min-height: 440px;
+      height: 58vh;
+      max-height: 680px;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #0d3b66;
+      border: 2px solid #1e3a5f;
+      box-shadow: var(--shadow);
+      touch-action: none;
+      user-select: none;
+    }
+
+    #worldMap {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+    }
+
+    #worldMap:active {
+      cursor: grabbing;
+    }
+
+    .country-shape {
+      stroke: #0f172a;
+      stroke-width: 1.4;
+      stroke-linejoin: round;
+      cursor: pointer;
+      transition: filter 0.12s ease, stroke-width 0.12s ease;
+    }
+
+    .country-shape:hover {
+      filter: brightness(1.12);
+      stroke: #ffffff;
+      stroke-width: 2.2;
+    }
+
+    .country-shape.selected {
+      stroke: #facc15;
+      stroke-width: 3.2;
+      filter: brightness(1.16);
+    }
+
+    .country-shape.owned {
+      stroke: #22c55e;
+      stroke-width: 3.2;
+    }
+
+    .country-shape.enemy-owned {
+      stroke: #ef4444;
+      stroke-width: 2.8;
+    }
+
+    .country-shape.genius-target {
+      stroke: #c084fc;
+      stroke-width: 3.2;
+    }
+
+    .country-label {
+      font-size: 11px;
+      font-weight: 800;
+      fill: #ffffff;
+      text-anchor: middle;
+      paint-order: stroke;
+      stroke: #0f172a;
+      stroke-width: 2.8px;
+      pointer-events: none;
+    }
+
+    .owner-badge-text {
+      font-size: 9.5px;
+      font-weight: 800;
+      fill: #fde047;
+      text-anchor: middle;
+      paint-order: stroke;
+      stroke: #0f172a;
+      stroke-width: 2.4px;
+      pointer-events: none;
+    }
+
+    .map-controls {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    .zoom-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1.5px solid #475569;
+      background: rgba(15, 23, 42, 0.92);
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    .zoom-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* CARTE DE SÉLECTION SOUS LE PLANISPHÈRE */
+    .bottom-card {
+      margin-top: 12px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .card-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 240px;
+    }
+
+    .flag-svg-sm {
+      width: 54px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    .flag-svg-lg {
+      width: 72px;
+      height: 48px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      flex-shrink: 0;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--ink);
+    }
+
+    .card-sub {
+      margin: 3px 0 0;
+      font-size: 13px;
+      color: var(--mute);
+      line-height: 1.4;
+    }
+
+    .pills-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #e2e8f0;
+    }
+
+    .stat-pill.gold {
+      background: #fef3c7;
+      color: #92400e;
+      border-color: #fde68a;
+    }
+
+    .stat-pill.green {
+      background: #dcfce7;
+      color: #166534;
+      border-color: #bbf7d0;
+    }
+
+    .stat-pill.blue {
+      background: #e0f2fe;
+      color: #075985;
+      border-color: #bae6fd;
+    }
+
+    .stat-pill.purple {
+      background: #f3e8ff;
+      color: #6b21a8;
+      border-color: #e9d5ff;
+    }
+
+    .stat-pill.red {
+      background: #fee2e2;
+      color: #991b1b;
+      border-color: #fecaca;
+    }
+
+    .primary-btn {
+      appearance: none;
+      border: none;
+      background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+      color: #0f172a;
+      font-weight: 900;
+      font-size: 14px;
+      padding: 12px 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(217, 119, 6, 0.28);
+      transition: transform 0.1s ease, opacity 0.15s ease;
+    }
+
+    .primary-btn:active {
+      transform: scale(0.98);
+    }
+
+    .primary-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .primary-btn.secondary {
+      background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.28);
+    }
+
+    .primary-btn.purple {
+      background: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(109, 40, 217, 0.25);
+    }
+
+    .primary-btn.danger {
+      background: linear-gradient(180deg, #dc2626 0%, #b91c1c 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.28);
+    }
+
+    .primary-btn.green {
+      background: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.28);
+    }
+
+    /* ONGLET 2 : PAGE DU PAYS CHOISI */
+    .country-panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+
+    .country-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .country-title-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .country-title-block h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .kpi-card {
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .kpi-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--mute);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .kpi-value {
+      font-size: 19px;
+      font-weight: 900;
+      margin-top: 4px;
+      color: var(--ink);
+    }
+
+    .kpi-sub {
+      font-size: 12px;
+      color: var(--mute);
+      margin-top: 3px;
+    }
+
+    .section-heading {
+      margin: 0 0 10px;
+      font-size: 17px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* DÉVELOPPEMENT NIVEAU 1 -> 5 */
+    .dev-upgrade-box {
+      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+      border: 1.5px solid #f59e0b;
+      border-radius: 16px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .progress-bar-wrap {
+      width: 100%;
+      height: 10px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #7c3aed, #2563eb);
+      border-radius: 999px;
+      transition: width 0.25s ease;
+    }
+
+    /* INFRASTRUCTURES (MINES & FERMES) */
+    .infra-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+    }
+
+    .infra-card {
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .batch-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .batch-btn {
+      appearance: none;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: var(--ink);
+      font-weight: 800;
+      font-size: 12.5px;
+      padding: 8px 11px;
+      border-radius: 10px;
+      cursor: pointer;
+      flex: 1;
+      min-width: 64px;
+    }
+
+    .batch-btn:hover:not(:disabled) {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    .batch-btn:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+    }
+
+    /* CABINET DU GÉNIE */
+    .genius-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: #faf5ff;
+      border: 1.5px solid #d8b4fe;
+      border-radius: 15px;
+      padding: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .missions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+      gap: 10px;
+    }
+
+    .mission-card {
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .active-mission-banner {
+      background: #f3e8ff;
+      border: 1.5px solid #a855f7;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .genius-log {
+      margin-top: 10px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 12.5px;
+      color: #475569;
+    }
+
+    /* GRILLE DES TROUPES */
+    .troops-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(265px, 1fr));
+      gap: 12px;
+    }
+
+    .troop-card {
+      background: var(--surface-soft);
+      border: 1.5px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .troop-card.locked {
+      opacity: 0.72;
+      background: #f1f5f9;
+      border-style: dashed;
+    }
+
+    .troop-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .troop-art {
+      width: 66px;
+      height: 66px;
+      border-radius: 14px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      padding: 4px;
+    }
+
+    /* CAMPAGNES MILITAIRES & INVASIONS */
+    .campaigns-panel {
+      margin-top: 12px;
+      background: #fff1f2;
+      border: 1.5px solid #fda4af;
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .campaign-item {
+      background: #ffffff;
+      border: 1px solid #fecdd3;
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* MULTIJOUEUR */
+    .multi-panel {
+      margin-top: 12px;
+      background: var(--surface);
+      border: 1.5px solid #38bdf8;
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .multi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .multi-box {
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .multi-input {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 9px;
+      padding: 9px 11px;
+      font-size: 14px;
+      font-weight: 600;
+      background: #ffffff;
+      color: var(--ink);
+    }
+
+    .room-code-badge {
+      display: inline-flex;
+      align-items: center;
+      background: #0f172a;
+      color: #fde68a;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      padding: 6px 12px;
+      border-radius: 10px;
+      border: 1.5px solid #f59e0b;
+    }
+
+    .player-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 9px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 12.5px;
+    }
+
+    .chat-feed {
+      height: 140px;
+      overflow-y: auto;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 12.5px;
+    }
+
+    .chat-msg {
+      padding: 4px 7px;
+      border-radius: 7px;
+      background: #f1f5f9;
+    }
+
+    .chat-msg.event {
+      background: #fef3c7;
+      color: #78350f;
+      font-weight: 700;
+    }
+
+    .combat-preview-box {
+      margin-top: 10px;
+      background: #fef2f2;
+      border: 1.5px solid #fca5a5;
+      border-radius: 14px;
+      padding: 12px;
+      width: 100%;
+    }
+
+    /* FENÊTRE MODALE (PROFIL CLOUD PSEUDO+PIN & SAUVEGARDE) */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.72);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: #ffffff;
+      border-radius: 20px;
+      max-width: 460px;
+      width: 100%;
+      padding: 20px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .modal-close {
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .auth-tabs {
+      display: flex;
+      gap: 6px;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 14px;
+    }
+
+    .auth-tab {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 9px 10px;
+      border-radius: 9px;
+      font-weight: 800;
+      font-size: 13px;
+      color: var(--mute);
+      cursor: pointer;
+    }
+
+    .auth-tab.active {
+      background: #ffffff;
+      color: var(--ink);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    .offline-toast {
+      background: #dcfce7;
+      border: 1.5px solid #22c55e;
+      color: #14532d;
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      font-weight: 800;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .map-stage {
+        min-height: 430px;
+        height: 55vh;
+      }
+      .country-title-block h1 {
+        font-size: 19px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BARRE SUPÉRIEURE -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <nav class="tabs-row" id="tabs-row">
+        <button type="button" class="tab-btn active" id="tab-map">🌍 Carte</button>
+        <span id="owned-tabs-container" style="display:inline-flex;gap:6px;flex-wrap:wrap;"></span>
+      </nav>
+
+      <div class="hud-right">
+        <div class="hud-pill gold" id="hud-gold-pill" style="display:none;">
+          <span>🪙 <span id="hud-gold">0</span> or</span>
+          <span class="hud-rate" id="hud-rate">+4 or/s</span>
+        </div>
+        <div class="hud-pill know" id="hud-know-pill" style="display:none;">
+          <span>🧠 <span id="hud-know">0</span></span>
+        </div>
+        <button type="button" class="hud-btn" id="btn-multi-toggle">🌐 <span id="multi-btn-label">Multijoueur</span></button>
+        <button type="button" class="hud-btn" id="btn-cloud-modal">☁️ <span id="cloud-status-text">Profil</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-wrap">
+    <!-- BANDEAU GAINS HORS-LIGNE -->
+    <div class="offline-toast" id="offline-toast">
+      <span id="offline-toast-text"></span>
+      <button type="button" class="modal-close" id="close-offline-toast">OK</button>
+    </div>
+
+    <!-- ONGLET 1 : CARTE DU MONDE -->
+    <section id="view-map">
+      <div class="map-stage" id="map-stage">
+        <svg id="worldMap" viewBox="0 0 1440 830" preserveAspectRatio="xMidYMid slice"></svg>
+        <div class="map-controls">
+          <button type="button" class="zoom-btn" id="btn-zoom-in" title="Zoomer">+</button>
+          <button type="button" class="zoom-btn" id="btn-zoom-out" title="Dézoomer">−</button>
+          <button type="button" class="zoom-btn" id="btn-zoom-reset" title="Recentrer">⌖</button>
+        </div>
+      </div>
+
+      <div class="bottom-card" id="map-card">
+        <div class="card-info">
+          <div id="card-flag"></div>
+          <div>
+            <h2 class="card-title" id="card-title">Choisis ton pays de départ</h2>
+            <p class="card-sub" id="card-sub">Touche un pays sur la carte : il démarre gratuitement avec 2 mines d’or (+4 or/s), 1 ferme, 1 troupe et ton Génie.</p>
+            <div class="pills-row" id="card-pills" style="display:none;"></div>
+          </div>
+        </div>
+        <button type="button" class="primary-btn" id="card-action" style="display:none;">Choisir gratuitement</button>
+      </div>
+
+      <!-- CAMPAGNES MILITAIRES EN COURS (TEMPS RÉEL EN JOURS/HEURES) -->
+      <div class="campaigns-panel" id="campaigns-panel" style="display:none;"></div>
+
+      <!-- PANNEAU MULTIJOUEUR -->
+      <div class="multi-panel" id="multi-panel" style="display:none;"></div>
+    </section>
+
+    <!-- ONGLET 2 : PAGE DU PAYS CHOISI -->
+    <section id="view-country" style="display:none;"></section>
+  </main>
+
+  <!-- MODALE PROFIL CLOUD (PSEUDO + PIN 4 CHIFFRES) -->
+  <div class="modal-backdrop" id="cloud-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <strong style="font-size:17.5px;">☁️ Sauvegarde Auto en Ligne</strong>
+        <button type="button" class="modal-close" id="close-cloud-modal">✕</button>
+      </div>
+      <p style="margin:0 0 12px;font-size:13px;color:var(--mute);line-height:1.45;">
+        Connecte-toi avec ton <b>Pseudo</b> et un <b>code PIN à 4 chiffres</b> : ta progression et tes gains hors-ligne sont sauvegardés automatiquement sans aucun code à copier-coller !
+      </p>
+
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab active" id="tab-auth-login">Reprendre ma partie</button>
+        <button type="button" class="auth-tab" id="tab-auth-register">Nouvelle partie</button>
+      </div>
+
+      <form id="cloud-auth-form" autocomplete="on">
+        <div style="margin-bottom:10px;">
+          <label style="display:block;font-size:12.5px;font-weight:800;margin-bottom:4px;">Pseudo du joueur</label>
+          <input type="text" class="multi-input" id="cloud-username" name="username" autocomplete="username" maxlength="20" placeholder="Ex : Alex92" required />
+        </div>
+        <div style="margin-bottom:12px;">
+          <label style="display:block;font-size:12.5px;font-weight:800;margin-bottom:4px;">Code PIN (4 chiffres)</label>
+          <input type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" class="multi-input" id="cloud-pin" name="password" autocomplete="current-password" placeholder="Ex : 1234" required />
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="submit" class="primary-btn green" id="btn-cloud-submit" style="flex:1;">Charger ma sauvegarde</button>
+          <button type="button" class="primary-btn secondary" id="btn-play-guest" style="padding:11px 14px;font-size:13px;">Jouer sans compte</button>
+        </div>
+      </form>
+
+      <div id="cloud-connected-actions" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:12.5px;font-weight:800;color:#15803d;" id="cloud-active-user-label"></span>
+        <div style="display:flex;gap:6px;">
+          <button type="button" class="primary-btn secondary" id="btn-cloud-sync-now" style="padding:7px 11px;font-size:12px;">Synchroniser</button>
+          <button type="button" class="primary-btn danger" id="btn-cloud-logout" style="padding:7px 11px;font-size:12px;">Déconnexion</button>
+        </div>
+      </div>
+
+      <div id="cloud-feedback" style="margin-top:9px;font-size:12.5px;font-weight:800;color:#15803d;min-height:18px;"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    (function () {
+      'use strict';
+
+      // =========================================================================
+      // 1. INITIALISATION FIREBASE (SAUVEGARDE AUTO CLOUD & MULTIJOUEUR)
+      // =========================================================================
+      var appId = typeof __app_id !== 'undefined' ? __app_id : 'carte-des-pays-online';
+      var firebaseConfig = null;
+      try {
+        if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+          firebaseConfig = JSON.parse(__firebase_config);
+        }
+      } catch (e) {}
+
+      var fbApp = null;
+      var fbAuth = null;
+      var fbDb = null;
+      var fbUser = null;
+      var roomUnsub = null;
+      var chatUnsub = null;
+
+      if (firebaseConfig) {
+        try {
+          fbApp = initializeApp(firebaseConfig);
+          fbAuth = getAuth(fbApp);
+          fbDb = getFirestore(fbApp);
+          onAuthStateChanged(fbAuth, function (user) {
+            fbUser = user;
+            if (user && state.cloud.username && state.cloud.pin) {
+              pullCloudSave(state.cloud.username, state.cloud.pin, true);
+            }
+          });
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            signInWithCustomToken(fbAuth, __initial_auth_token).catch(function () { signInAnonymously(fbAuth); });
+          } else {
+            signInAnonymously(fbAuth).catch(function () {});
+          }
+        } catch (e) {}
+      }
+
+      // =========================================================================
+      // 2. CONSTANTES ÉCONOMIQUES, DÉVELOPPEMENT, GÉNIE & CONQUÊTES
+      // =========================================================================
+      var LOCAL_CACHE_KEY = 'carte_des_pays_v10';
+      var MAP_W = 1440;
+      var MAP_H = 830;
+
+      var STARTING_MINES = 2;
+      var STARTING_FARMS = 1;
+      var STARTING_GOLD = 0;
+      var MINE_COST = 100000;
+      var MINE_RATE = 2;
+      var FARM_COST = 80000;
+      var TROOP_FOOD_COST = 1;
+
+      var DEV_LEVELS = {
+        1: { label: 'Peu développé', count: 2 },
+        2: { label: 'En développement', count: 3 },
+        3: { label: 'Développé', count: 4 },
+        4: { label: 'Très développé', count: 5 },
+        5: { label: 'Superpuissance', count: 6 }
+      };
+
+      // Amélioration Niveau 1 -> 5 (5x plus chère + Connaissances)
+      var DEV_UPGRADE_COSTS = {
+        1: { gold: 2500000, knowledge: 120 },
+        2: { gold: 10000000, knowledge: 450 },
+        3: { gold: 35000000, knowledge: 1400 },
+        4: { gold: 100000000, knowledge: 4000 }
+      };
+
+      // Paliers de coût des 6 troupes
+      var TROOP_TIERS = [
+        { cost: 150000 },
+        { cost: 300000 },
+        { cost: 600000 },
+        { cost: 1200000 },
+        { cost: 2400000 },
+        { cost: 4800000 }
+      ];
+
+      // Seuils de Connaissances requis pour les 2 dernières troupes de chaque pays
+      var LAST_TWO_KNOWLEDGE_REQ = {
+        2: [40, 110],
+        3: [90, 260],
+        4: [150, 450],
+        5: [550, 1350],
+        6: [1400, 3800]
+      };
+
+      // Expéditions du Génie (longues, chronométrées via Date.now())
+      var GENIUS_MISSIONS = [
+        {
+          id: 'local_visit',
+          title: 'Visiter la région',
+          desc: 'Observation locale des artisans, reliefs et ressources naturelles.',
+          cost: 0,
+          durationSec: 45,
+          minGain: 6,
+          maxGain: 10,
+          foreign: false
+        },
+        {
+          id: 'academy_study',
+          title: 'Étudier en Académie',
+          desc: 'Lecture approfondie des traités de sciences, tactique et ingénierie.',
+          cost: 75000,
+          durationSec: 150,
+          minGain: 22,
+          maxGain: 32,
+          foreign: false
+        },
+        {
+          id: 'foreign_voyage',
+          title: 'Voyage diplomatique à l’étranger',
+          desc: 'Expédition vers une capitale étrangère (+25 🧠 bonus si pays Niv. 4-5).',
+          cost: 300000,
+          durationSec: 360,
+          minGain: 60,
+          maxGain: 85,
+          foreign: true
+        },
+        {
+          id: 'world_summit',
+          title: 'Sommet Scientifique Mondial',
+          desc: 'Grandes recherches internationales et percées technologiques majeures.',
+          cost: 1200000,
+          durationSec: 900,
+          minGain: 160,
+          maxGain: 220,
+          foreign: false
+        }
+      ];
+
+      var BIOME_COLORS = {
+        polaire: '#e2e8f0',
+        boreal: '#4d7c0f',
+        tempere: '#16a34a',
+        steppe: '#ca8a04',
+        aride: '#d97706',
+        tropical: '#15803d'
+      };
+
+      // =========================================================================
+      // 3. DONNÉES DES 28 PAYS & LEURS 6 TROUPES EXCLUSIVES
+      // =========================================================================
+      var COUNTRIES = [
+        {
+          id: 'GL', name: 'Groenland', region: 'Arctique', biome: 'polaire', dev: 3,
+          maxMines: 420000, maxSoldiers: 1050000, cx: 455, cy: 118,
+          d: 'M395,55 L495,42 L542,88 L508,162 L448,195 L412,155 L382,102 Z',
+          troops: [
+            { name: 'Guerrier des glaces', art: 'gl_warrior', atk: 18, def: 16, hp: 90 },
+            { name: 'Harponneur', art: 'gl_harpoon', atk: 28, def: 18, hp: 110 },
+            { name: 'Pingouin artificier', art: 'gl_penguin', atk: 46, def: 22, hp: 130 },
+            { name: 'Ours de guerre', art: 'gl_bear', atk: 68, def: 58, hp: 260 },
+            { name: 'Brise-glace arctique', art: 'gl_icebreaker', atk: 105, def: 90, hp: 410 },
+            { name: 'Forteresse Boréale', art: 'gl_citadel', atk: 155, def: 140, hp: 620 }
+          ]
+        },
+        {
+          id: 'CA', name: 'Canada', region: 'Amérique du Nord', biome: 'boreal', dev: 3,
+          maxMines: 620000, maxSoldiers: 1550000, cx: 255, cy: 215,
+          d: 'M130,150 L250,130 L355,155 L368,235 L295,268 L175,265 L125,215 Z',
+          troops: [
+            { name: 'Ranger des forêts', art: 'infantry_green', atk: 17, def: 15, hp: 85 },
+            { name: 'Tireur monté', art: 'cavalry', atk: 26, def: 20, hp: 115 },
+            { name: 'Sapeur du Nord', art: 'artillery', atk: 42, def: 26, hp: 140 },
+            { name: 'Blindé Grizzly', art: 'tank', atk: 65, def: 55, hp: 245 },
+            { name: 'Escadron Caribou', art: 'jet', atk: 102, def: 82, hp: 380 },
+            { name: 'Colosse Polaire', art: 'mecha', atk: 150, def: 130, hp: 590 }
+          ]
+        },
+        {
+          id: 'US', name: 'États-Unis', region: 'Amérique du Nord', biome: 'tempere', dev: 5,
+          maxMines: 1000000, maxSoldiers: 2500000, cx: 248, cy: 318,
+          d: 'M135,270 L325,270 L345,320 L300,368 L185,365 L130,322 Z',
+          troops: [
+            { name: 'Marine d’assaut', art: 'infantry_blue', atk: 19, def: 16, hp: 92 },
+            { name: 'Cavalier aéroporté', art: 'heli', atk: 30, def: 22, hp: 125 },
+            { name: 'Artillerie Paladin', art: 'artillery', atk: 48, def: 30, hp: 155 },
+            { name: 'Char Abrams', art: 'tank', atk: 74, def: 64, hp: 280 },
+            { name: 'Chasseur Furtif Raptor', art: 'jet', atk: 115, def: 92, hp: 420 },
+            { name: 'Porte-avions Titan', art: 'carrier', atk: 172, def: 148, hp: 680 }
+          ]
+        },
+        {
+          id: 'MX', name: 'Mexique', region: 'Amérique centrale', biome: 'aride', dev: 3,
+          maxMines: 340000, maxSoldiers: 850000, cx: 215, cy: 405,
+          d: 'M165,368 L255,372 L272,425 L235,450 L185,420 Z',
+          troops: [
+            { name: 'Guerrier Jaguar', art: 'infantry_gold', atk: 18, def: 15, hp: 88 },
+            { name: 'Lancier du désert', art: 'cavalry', atk: 27, def: 19, hp: 112 },
+            { name: 'Canonnière Aztèque', art: 'artillery', atk: 43, def: 26, hp: 142 },
+            { name: 'Blindé Soleil', art: 'tank', atk: 66, def: 54, hp: 240 },
+            { name: 'Escadrille Quetzal', art: 'jet', atk: 100, def: 80, hp: 375 },
+            { name: 'Pyramide d’Acier', art: 'mecha', atk: 148, def: 128, hp: 580 }
+          ]
+        },
+        {
+          id: 'CO', name: 'Colombie', region: 'Amérique du Sud', biome: 'tropical', dev: 2,
+          maxMines: 240000, maxSoldiers: 600000, cx: 315, cy: 492,
+          d: 'M285,462 L342,465 L352,515 L302,525 L282,495 Z',
+          troops: [
+            { name: 'Éclaireur de la jungle', art: 'infantry_green', atk: 17, def: 15, hp: 85 },
+            { name: 'Guérillero des Andes', art: 'infantry_gold', atk: 26, def: 20, hp: 112 },
+            { name: 'Mortier Emeraude', art: 'artillery', atk: 42, def: 27, hp: 142 },
+            { name: 'Blindé Condor', art: 'tank', atk: 64, def: 52, hp: 238 },
+            { name: 'Chasseur Bolívar', art: 'jet', atk: 98, def: 79, hp: 370 },
+            { name: 'Forteresse El Dorado', art: 'mecha', atk: 145, def: 126, hp: 575 }
+          ]
+        },
+        {
+          id: 'PE', name: 'Pérou', region: 'Amérique du Sud', biome: 'steppe', dev: 2,
+          maxMines: 260000, maxSoldiers: 650000, cx: 308, cy: 565,
+          d: 'M280,528 L335,532 L342,598 L295,602 L276,562 Z',
+          troops: [
+            { name: 'Frondeur Inca', art: 'infantry_gold', atk: 17, def: 15, hp: 86 },
+            { name: 'Garde des Cimes', art: 'cavalry', atk: 26, def: 21, hp: 115 },
+            { name: 'Batterie Cuzco', art: 'artillery', atk: 43, def: 27, hp: 144 },
+            { name: 'Char Inti', art: 'tank', atk: 65, def: 53, hp: 242 },
+            { name: 'Faucon des Andes', art: 'jet', atk: 99, def: 80, hp: 372 },
+            { name: 'Colosse Viracocha', art: 'mecha', atk: 146, def: 127, hp: 580 }
+          ]
+        },
+        {
+          id: 'BR', name: 'Brésil', region: 'Amérique du Sud', biome: 'tropical', dev: 3,
+          maxMines: 640000, maxSoldiers: 1600000, cx: 405, cy: 565,
+          d: 'M345,495 L455,512 L475,585 L420,645 L355,615 L340,545 Z',
+          troops: [
+            { name: 'Sentinelle d’Amazonie', art: 'infantry_green', atk: 18, def: 16, hp: 90 },
+            { name: 'Commando fluvial', art: 'heli', atk: 28, def: 21, hp: 118 },
+            { name: 'Artillerie Astros', art: 'artillery', atk: 45, def: 28, hp: 148 },
+            { name: 'Char Osório', art: 'tank', atk: 68, def: 56, hp: 252 },
+            { name: 'Chasseur Super Tucano', art: 'jet', atk: 104, def: 84, hp: 390 },
+            { name: 'Titan d’Amazone', art: 'mecha', atk: 154, def: 132, hp: 605 }
+          ]
+        },
+        {
+          id: 'CL', name: 'Chili', region: 'Amérique du Sud', biome: 'steppe', dev: 2,
+          maxMines: 220000, maxSoldiers: 550000, cx: 315, cy: 678,
+          d: 'M302,608 L328,612 L334,752 L306,748 Z',
+          troops: [
+            { name: 'Chasseur d’Atacama', art: 'infantry_blue', atk: 17, def: 16, hp: 88 },
+            { name: 'Montagnard Austral', art: 'cavalry', atk: 26, def: 20, hp: 114 },
+            { name: 'Canon côtier', art: 'artillery', atk: 42, def: 28, hp: 145 },
+            { name: 'Blindé Magellan', art: 'tank', atk: 64, def: 54, hp: 240 },
+            { name: 'Aigle du Pacifique', art: 'jet', atk: 98, def: 81, hp: 375 },
+            { name: 'Cuirassé Cap Horn', art: 'carrier', atk: 146, def: 129, hp: 585 }
+          ]
+        },
+        {
+          id: 'AR', name: 'Argentine', region: 'Amérique du Sud', biome: 'steppe', dev: 2,
+          maxMines: 320000, maxSoldiers: 800000, cx: 362, cy: 685,
+          d: 'M334,615 L408,645 L388,750 L338,752 Z',
+          troops: [
+            { name: 'Gaucho éclaireur', art: 'cavalry', atk: 18, def: 15, hp: 88 },
+            { name: 'Grenadier des Pampas', art: 'infantry_blue', atk: 27, def: 20, hp: 116 },
+            { name: 'Batterie Patagonie', art: 'artillery', atk: 43, def: 27, hp: 144 },
+            { name: 'Char TAM', art: 'tank', atk: 66, def: 54, hp: 245 },
+            { name: 'Chasseur Pampa', art: 'jet', atk: 100, def: 82, hp: 380 },
+            { name: 'Forteresse Australe', art: 'mecha', atk: 148, def: 128, hp: 585 }
+          ]
+        },
+        {
+          id: 'IS', name: 'Islande', region: 'Europe du Nord', biome: 'polaire', dev: 1,
+          maxMines: 100000, maxSoldiers: 250000, cx: 562, cy: 175,
+          d: 'M535,160 L588,156 L594,188 L538,192 Z',
+          troops: [
+            { name: 'Garde des Geysers', art: 'gl_warrior', atk: 17, def: 16, hp: 88 },
+            { name: 'Navigateur Viking', art: 'gl_harpoon', atk: 27, def: 20, hp: 115 },
+            { name: 'Artilleur Volcanique', art: 'artillery', atk: 43, def: 27, hp: 145 },
+            { name: 'Brise-glace Nordique', art: 'gl_icebreaker', atk: 65, def: 55, hp: 242 },
+            { name: 'Faucon Boréal', art: 'jet', atk: 99, def: 80, hp: 375 },
+            { name: 'Titan de Glace', art: 'gl_citadel', atk: 148, def: 130, hp: 590 }
+          ]
+        },
+        {
+          id: 'GB', name: 'Royaume-Uni', region: 'Europe de l’Ouest', biome: 'tempere', dev: 4,
+          maxMines: 360000, maxSoldiers: 900000, cx: 615, cy: 252,
+          d: 'M596,225 L632,222 L638,276 L598,278 Z',
+          troops: [
+            { name: 'Garde Royal', art: 'infantry_red', atk: 18, def: 17, hp: 92 },
+            { name: 'Parachutiste SAS', art: 'heli', atk: 29, def: 22, hp: 122 },
+            { name: 'Artillerie Royale', art: 'artillery', atk: 46, def: 29, hp: 150 },
+            { name: 'Char Challenger', art: 'tank', atk: 72, def: 64, hp: 275 },
+            { name: 'Chasseur Typhoon', art: 'jet', atk: 110, def: 89, hp: 410 },
+            { name: 'Cuirassé Sovereign', art: 'carrier', atk: 162, def: 142, hp: 650 }
+          ]
+        },
+        {
+          id: 'FR', name: 'France', region: 'Europe de l’Ouest', biome: 'tempere', dev: 4,
+          maxMines: 440000, maxSoldiers: 1100000, cx: 646, cy: 304,
+          d: 'M618,282 L674,280 L678,328 L620,330 Z',
+          troops: [
+            { name: 'Légionnaire', art: 'infantry_blue', atk: 19, def: 16, hp: 92 },
+            { name: 'Chasseur Alpin', art: 'heli', atk: 29, def: 22, hp: 122 },
+            { name: 'Canon CAESAR', art: 'artillery', atk: 48, def: 28, hp: 150 },
+            { name: 'Char Leclerc', art: 'tank', atk: 73, def: 63, hp: 274 },
+            { name: 'Chasseur Rafale', art: 'jet', atk: 112, def: 90, hp: 412 },
+            { name: 'Porte-avions Charles', art: 'carrier', atk: 165, def: 144, hp: 655 }
+          ]
+        },
+        {
+          id: 'ES', name: 'Espagne', region: 'Europe du Sud', biome: 'aride', dev: 3,
+          maxMines: 320000, maxSoldiers: 800000, cx: 616, cy: 356,
+          d: 'M590,334 L646,334 L644,378 L588,376 Z',
+          troops: [
+            { name: 'Tercio d’élite', art: 'infantry_red', atk: 18, def: 16, hp: 90 },
+            { name: 'Caballero blindé', art: 'cavalry', atk: 27, def: 21, hp: 116 },
+            { name: 'Batterie Ibérique', art: 'artillery', atk: 44, def: 28, hp: 146 },
+            { name: 'Char Pizarro', art: 'tank', atk: 67, def: 56, hp: 250 },
+            { name: 'Faucon d’Andalousie', art: 'jet', atk: 102, def: 83, hp: 385 },
+            { name: 'Armada Invincible', art: 'carrier', atk: 152, def: 134, hp: 605 }
+          ]
+        },
+        {
+          id: 'DE', name: 'Allemagne', region: 'Europe centrale', biome: 'tempere', dev: 4,
+          maxMines: 420000, maxSoldiers: 1050000, cx: 696, cy: 276,
+          d: 'M676,252 L722,252 L724,302 L676,302 Z',
+          troops: [
+            { name: 'Panzergrenadier', art: 'infantry_green', atk: 19, def: 17, hp: 94 },
+            { name: 'Éclaireur Fennek', art: 'cavalry', atk: 29, def: 23, hp: 124 },
+            { name: 'Obusier PzH 2000', art: 'artillery', atk: 49, def: 30, hp: 154 },
+            { name: 'Char Leopard', art: 'tank', atk: 75, def: 65, hp: 282 },
+            { name: 'Intercepteur Eurofighter', art: 'jet', atk: 111, def: 90, hp: 412 },
+            { name: 'Forteresse Rhin', art: 'mecha', atk: 164, def: 145, hp: 655 }
+          ]
+        },
+        {
+          id: 'IT', name: 'Italie', region: 'Europe du Sud', biome: 'tempere', dev: 3,
+          maxMines: 300000, maxSoldiers: 750000, cx: 698, cy: 344,
+          d: 'M678,314 L712,316 L724,374 L694,376 L682,340 Z',
+          troops: [
+            { name: 'Centurion moderne', art: 'infantry_red', atk: 18, def: 16, hp: 90 },
+            { name: 'Bersaglieri rapide', art: 'cavalry', atk: 28, def: 20, hp: 116 },
+            { name: 'Artillerie Alpine', art: 'artillery', atk: 44, def: 28, hp: 146 },
+            { name: 'Char Ariete', art: 'tank', atk: 67, def: 56, hp: 250 },
+            { name: 'Chasseur Vésuve', art: 'jet', atk: 103, def: 83, hp: 386 },
+            { name: 'Croiseur Imperium', art: 'carrier', atk: 152, def: 134, hp: 605 }
+          ]
+        },
+        {
+          id: 'NO', name: 'Norvège', region: 'Scandinavie', biome: 'boreal', dev: 2,
+          maxMines: 240000, maxSoldiers: 600000, cx: 678, cy: 175,
+          d: 'M662,135 L696,132 L694,218 L664,215 Z',
+          troops: [
+            { name: 'Garde des Fjords', art: 'gl_warrior', atk: 18, def: 16, hp: 90 },
+            { name: 'Ski-commando', art: 'gl_harpoon', atk: 27, def: 21, hp: 116 },
+            { name: 'Batterie Arctique', art: 'artillery', atk: 43, def: 28, hp: 145 },
+            { name: 'Blindé Drakkar', art: 'tank', atk: 65, def: 55, hp: 245 },
+            { name: 'Valkyrie du Nord', art: 'jet', atk: 100, def: 82, hp: 380 },
+            { name: 'Cuirassé Odin', art: 'carrier', atk: 149, def: 131, hp: 590 }
+          ]
+        },
+        {
+          id: 'SE', name: 'Suède', region: 'Scandinavie', biome: 'boreal', dev: 2,
+          maxMines: 280000, maxSoldiers: 700000, cx: 718, cy: 182,
+          d: 'M698,136 L738,140 L736,225 L700,222 Z',
+          troops: [
+            { name: 'Infanterie Boréale', art: 'infantry_blue', atk: 18, def: 16, hp: 90 },
+            { name: 'Éclaireur Nordique', art: 'cavalry', atk: 27, def: 21, hp: 116 },
+            { name: 'Canon Archer', art: 'artillery', atk: 45, def: 28, hp: 146 },
+            { name: 'Char Stridsvagn', art: 'tank', atk: 67, def: 56, hp: 250 },
+            { name: 'Chasseur Gripen', art: 'jet', atk: 104, def: 84, hp: 388 },
+            { name: 'Bastion Baltique', art: 'mecha', atk: 151, def: 133, hp: 600 }
+          ]
+        },
+        {
+          id: 'PL', name: 'Pologne', region: 'Europe centrale', biome: 'tempere', dev: 3,
+          maxMines: 300000, maxSoldiers: 750000, cx: 748, cy: 274,
+          d: 'M726,250 L774,250 L776,298 L726,298 Z',
+          troops: [
+            { name: 'Fantassin de la Vistule', art: 'infantry_red', atk: 18, def: 16, hp: 90 },
+            { name: 'Hussard Ailé', art: 'cavalry', atk: 29, def: 21, hp: 118 },
+            { name: 'Obusier Krab', art: 'artillery', atk: 45, def: 28, hp: 148 },
+            { name: 'Char PT-91', art: 'tank', atk: 68, def: 56, hp: 252 },
+            { name: 'Aigle Blanc', art: 'jet', atk: 103, def: 83, hp: 386 },
+            { name: 'Forteresse Varsovie', art: 'mecha', atk: 152, def: 134, hp: 605 }
+          ]
+        },
+        {
+          id: 'UA', name: 'Ukraine', region: 'Europe de l’Est', biome: 'steppe', dev: 2,
+          maxMines: 360000, maxSoldiers: 900000, cx: 806, cy: 286,
+          d: 'M778,258 L842,262 L840,312 L778,310 Z',
+          troops: [
+            { name: 'Cosaque des steppes', art: 'cavalry', atk: 18, def: 16, hp: 90 },
+            { name: 'Opérateur de drone', art: 'heli', atk: 29, def: 21, hp: 118 },
+            { name: 'Batterie Bohdana', art: 'artillery', atk: 46, def: 28, hp: 148 },
+            { name: 'Char Oplot', art: 'tank', atk: 68, def: 57, hp: 254 },
+            { name: 'Faucon de Kiev', art: 'jet', atk: 103, def: 83, hp: 386 },
+            { name: 'Colosse du Dniepr', art: 'mecha', atk: 152, def: 134, hp: 605 }
+          ]
+        },
+        {
+          id: 'RU', name: 'Russie', region: 'Eurasie', biome: 'boreal', dev: 5,
+          maxMines: 1000000, maxSoldiers: 2500000, cx: 990, cy: 195,
+          d: 'M745,115 L1255,105 L1315,175 L1235,255 L965,268 L845,255 L750,215 Z',
+          troops: [
+            { name: 'Garde Sibérien', art: 'infantry_green', atk: 19, def: 17, hp: 94 },
+            { name: 'Spetsnaz arctique', art: 'heli', atk: 30, def: 23, hp: 125 },
+            { name: 'Lance-roquettes Katyusha', art: 'artillery', atk: 50, def: 29, hp: 156 },
+            { name: 'Char Armata', art: 'tank', atk: 76, def: 65, hp: 285 },
+            { name: 'Intercepteur Sukhoi', art: 'jet', atk: 114, def: 92, hp: 422 },
+            { name: 'Croiseur Kirov', art: 'carrier', atk: 170, def: 148, hp: 675 }
+          ]
+        },
+        {
+          id: 'TR', name: 'Turquie', region: 'Anatolie', biome: 'steppe', dev: 3,
+          maxMines: 320000, maxSoldiers: 800000, cx: 818, cy: 356,
+          d: 'M776,338 L866,338 L864,376 L776,374 Z',
+          troops: [
+            { name: 'Janissaire moderne', art: 'infantry_red', atk: 18, def: 16, hp: 90 },
+            { name: 'Drone Bayraktar', art: 'heli', atk: 29, def: 21, hp: 118 },
+            { name: 'Obusier Fırtına', art: 'artillery', atk: 45, def: 28, hp: 148 },
+            { name: 'Char Altay', art: 'tank', atk: 68, def: 57, hp: 252 },
+            { name: 'Chasseur Kaan', art: 'jet', atk: 104, def: 84, hp: 388 },
+            { name: 'Bastion du Bosphore', art: 'carrier', atk: 153, def: 135, hp: 610 }
+          ]
+        },
+        {
+          id: 'SA', name: 'Arabie Saoudite', region: 'Moyen-Orient', biome: 'aride', dev: 3,
+          maxMines: 460000, maxSoldiers: 1150000, cx: 868, cy: 442,
+          d: 'M822,402 L914,408 L924,478 L836,482 Z',
+          troops: [
+            { name: 'Garde des Dunes', art: 'infantry_gold', atk: 18, def: 16, hp: 90 },
+            { name: 'Cavalier du Désert', art: 'cavalry', atk: 28, def: 21, hp: 118 },
+            { name: 'Batterie du Golfe', art: 'artillery', atk: 45, def: 28, hp: 148 },
+            { name: 'Blindé Mirage', art: 'tank', atk: 68, def: 57, hp: 254 },
+            { name: 'Faucon d’Arabie', art: 'jet', atk: 105, def: 85, hp: 392 },
+            { name: 'Citadelle d’Or', art: 'mecha', atk: 155, def: 136, hp: 615 }
+          ]
+        },
+        {
+          id: 'MA', name: 'Maroc', region: 'Afrique du Nord', biome: 'aride', dev: 2,
+          maxMines: 260000, maxSoldiers: 650000, cx: 602, cy: 416,
+          d: 'M576,390 L632,390 L628,444 L572,442 Z',
+          troops: [
+            { name: 'Garde de l’Atlas', art: 'infantry_red', atk: 18, def: 16, hp: 90 },
+            { name: 'Méhariste saharien', art: 'cavalry', atk: 27, def: 21, hp: 116 },
+            { name: 'Artillerie Royale', art: 'artillery', atk: 43, def: 28, hp: 145 },
+            { name: 'Char Lion de l’Atlas', art: 'tank', atk: 66, def: 55, hp: 246 },
+            { name: 'Faucon du Détroit', art: 'jet', atk: 101, def: 82, hp: 382 },
+            { name: 'Forteresse Kasbah', art: 'mecha', atk: 149, def: 131, hp: 595 }
+          ]
+        },
+        {
+          id: 'EG', name: 'Égypte', region: 'Afrique du Nord', biome: 'aride', dev: 2,
+          maxMines: 320000, maxSoldiers: 800000, cx: 774, cy: 434,
+          d: 'M744,404 L806,404 L806,466 L744,466 Z',
+          troops: [
+            { name: 'Gardien du Nil', art: 'infantry_gold', atk: 18, def: 16, hp: 90 },
+            { name: 'Éclaireur du Sinaï', art: 'cavalry', atk: 27, def: 21, hp: 116 },
+            { name: 'Batterie de Suez', art: 'artillery', atk: 44, def: 28, hp: 146 },
+            { name: 'Char Ramsès', art: 'tank', atk: 67, def: 56, hp: 250 },
+            { name: 'Faucon Horus', art: 'jet', atk: 102, def: 83, hp: 384 },
+            { name: 'Colosse Pharaon', art: 'mecha', atk: 151, def: 133, hp: 600 }
+          ]
+        },
+        {
+          id: 'NG', name: 'Nigeria', region: 'Afrique de l’Ouest', biome: 'tropical', dev: 2,
+          maxMines: 340000, maxSoldiers: 850000, cx: 682, cy: 522,
+          d: 'M652,492 L714,492 L714,552 L652,552 Z',
+          troops: [
+            { name: 'Sentinelle du Niger', art: 'infantry_green', atk: 18, def: 16, hp: 90 },
+            { name: 'Commando Lagune', art: 'heli', atk: 28, def: 21, hp: 118 },
+            { name: 'Artillerie Savane', art: 'artillery', atk: 44, def: 28, hp: 146 },
+            { name: 'Blindé Léopard Noir', art: 'tank', atk: 66, def: 55, hp: 248 },
+            { name: 'Aigle d’Abuja', art: 'jet', atk: 101, def: 82, hp: 382 },
+            { name: 'Titan d’Afrique', art: 'mecha', atk: 150, def: 132, hp: 598 }
+          ]
+        },
+        {
+          id: 'ZA', name: 'Afrique du Sud', region: 'Afrique australe', biome: 'steppe', dev: 2,
+          maxMines: 380000, maxSoldiers: 950000, cx: 742, cy: 676,
+          d: 'M704,634 L782,634 L772,718 L712,716 Z',
+          troops: [
+            { name: 'Ranger du Veld', art: 'infantry_green', atk: 18, def: 16, hp: 90 },
+            { name: 'Hélicoptère Rooivalk', art: 'heli', atk: 29, def: 22, hp: 120 },
+            { name: 'Obusier G6 Rhino', art: 'artillery', atk: 46, def: 29, hp: 150 },
+            { name: 'Char Olifant', art: 'tank', atk: 68, def: 57, hp: 254 },
+            { name: 'Chasseur Cheetah', art: 'jet', atk: 103, def: 84, hp: 388 },
+            { name: 'Bastion du Cap', art: 'mecha', atk: 153, def: 135, hp: 610 }
+          ]
+        },
+        {
+          id: 'MG', name: 'Madagascar', region: 'Océan Indien', biome: 'tropical', dev: 1,
+          maxMines: 180000, maxSoldiers: 450000, cx: 834, cy: 644,
+          d: 'M818,602 L852,606 L846,688 L814,682 Z',
+          troops: [
+            { name: 'Guerrier des Baobabs', art: 'infantry_green', atk: 17, def: 16, hp: 88 },
+            { name: 'Éclaireur côtier', art: 'cavalry', atk: 26, def: 20, hp: 114 },
+            { name: 'Batterie Insulaire', art: 'artillery', atk: 42, def: 27, hp: 144 },
+            { name: 'Blindé Lémurien', art: 'tank', atk: 64, def: 54, hp: 242 },
+            { name: 'Faucon de l’Océan', art: 'jet', atk: 98, def: 80, hp: 375 },
+            { name: 'Forteresse Royale', art: 'mecha', atk: 147, def: 129, hp: 585 }
+          ]
+        },
+        {
+          id: 'KZ', name: 'Kazakhstan', region: 'Asie centrale', biome: 'steppe', dev: 1,
+          maxMines: 420000, maxSoldiers: 1050000, cx: 942, cy: 292,
+          d: 'M868,266 L1018,266 L1014,322 L866,320 Z',
+          troops: [
+            { name: 'Cavalier des Steppes', art: 'cavalry', atk: 18, def: 16, hp: 90 },
+            { name: 'Archer à cheval', art: 'infantry_blue', atk: 27, def: 20, hp: 115 },
+            { name: 'Lance-missiles Baïkonour', art: 'artillery', atk: 45, def: 28, hp: 148 },
+            { name: 'Char T-72KZ', art: 'tank', atk: 67, def: 56, hp: 250 },
+            { name: 'Aigle des Steppes', art: 'jet', atk: 102, def: 83, hp: 384 },
+            { name: 'Station Orbitale', art: 'mecha', atk: 152, def: 134, hp: 605 }
+          ]
+        },
+        {
+          id: 'IN', name: 'Inde', region: 'Asie du Sud', biome: 'tropical', dev: 3,
+          maxMines: 660000, maxSoldiers: 1650000, cx: 992, cy: 446,
+          d: 'M946,386 L1042,390 L1018,512 L978,512 L946,434 Z',
+          troops: [
+            { name: 'Garde Gurkha', art: 'infantry_gold', atk: 19, def: 16, hp: 92 },
+            { name: 'Éléphant cuirassé', art: 'cavalry', atk: 29, def: 23, hp: 126 },
+            { name: 'Artillerie Pinaka', art: 'artillery', atk: 46, def: 29, hp: 150 },
+            { name: 'Char Arjun', art: 'tank', atk: 70, def: 59, hp: 262 },
+            { name: 'Chasseur Tejas', art: 'jet', atk: 106, def: 86, hp: 398 },
+            { name: 'Forteresse Bharat', art: 'mecha', atk: 158, def: 138, hp: 625 }
+          ]
+        },
+        {
+          id: 'CN', name: 'Chine', region: 'Asie de l’Est', biome: 'tempere', dev: 5,
+          maxMines: 1000000, maxSoldiers: 2500000, cx: 1125, cy: 365,
+          d: 'M1025,292 L1215,286 L1232,402 L1115,425 L1035,382 Z',
+          troops: [
+            { name: 'Garde de la Muraille', art: 'infantry_red', atk: 19, def: 17, hp: 94 },
+            { name: 'Cavalier de Jade', art: 'cavalry', atk: 30, def: 23, hp: 124 },
+            { name: 'Batterie Longue Marche', art: 'artillery', atk: 49, def: 30, hp: 156 },
+            { name: 'Char Dragon Type-99', art: 'tank', atk: 75, def: 65, hp: 282 },
+            { name: 'Dragon Céleste J-20', art: 'jet', atk: 114, def: 92, hp: 422 },
+            { name: 'Colosse Impérial', art: 'mecha', atk: 171, def: 148, hp: 678 }
+          ]
+        },
+        {
+          id: 'JP', name: 'Japon', region: 'Asie de l’Est', biome: 'tempere', dev: 4,
+          maxMines: 360000, maxSoldiers: 900000, cx: 1278, cy: 356,
+          d: 'M1264,316 L1294,318 L1288,396 L1260,392 Z',
+          troops: [
+            { name: 'Samouraï moderne', art: 'infantry_blue', atk: 19, def: 17, hp: 92 },
+            { name: 'Ninja cybernétique', art: 'heli', atk: 31, def: 22, hp: 122 },
+            { name: 'Artillerie Type-99', art: 'artillery', atk: 48, def: 29, hp: 152 },
+            { name: 'Char Type-10', art: 'tank', atk: 73, def: 63, hp: 274 },
+            { name: 'Mecha Shogun', art: 'mecha', atk: 116, def: 94, hp: 430 },
+            { name: 'Cuirassé Yamato', art: 'carrier', atk: 166, def: 145, hp: 660 }
+          ]
+        },
+        {
+          id: 'KR', name: 'Corée du Sud', region: 'Asie de l’Est', biome: 'tempere', dev: 4,
+          maxMines: 280000, maxSoldiers: 700000, cx: 1236, cy: 354,
+          d: 'M1224,334 L1250,334 L1248,374 L1224,374 Z',
+          troops: [
+            { name: 'Tigre Blanc', art: 'infantry_blue', atk: 19, def: 17, hp: 92 },
+            { name: 'Commando Taekwondo', art: 'heli', atk: 30, def: 22, hp: 122 },
+            { name: 'Obusier K9 Thunder', art: 'artillery', atk: 49, def: 30, hp: 154 },
+            { name: 'Char Panthère Noire', art: 'tank', atk: 74, def: 64, hp: 278 },
+            { name: 'Chasseur Boramae', art: 'jet', atk: 112, def: 90, hp: 414 },
+            { name: 'Exosquelette Séoul', art: 'mecha', atk: 164, def: 144, hp: 655 }
+          ]
+        },
+        {
+          id: 'TH', name: 'Thaïlande', region: 'Asie du Sud-Est', biome: 'tropical', dev: 2,
+          maxMines: 260000, maxSoldiers: 650000, cx: 1086, cy: 486,
+          d: 'M1066,456 L1106,456 L1104,518 L1068,516 Z',
+          troops: [
+            { name: 'Combattant Muay-Thaï', art: 'infantry_gold', atk: 18, def: 16, hp: 90 },
+            { name: 'Éclaireur du Mékong', art: 'heli', atk: 28, def: 21, hp: 118 },
+            { name: 'Batterie Siam', art: 'artillery', atk: 44, def: 28, hp: 146 },
+            { name: 'Char Oplot-T', art: 'tank', atk: 66, def: 55, hp: 248 },
+            { name: 'Garuda Céleste', art: 'jet', atk: 101, def: 82, hp: 382 },
+            { name: 'Temple d’Acier', art: 'mecha', atk: 150, def: 132, hp: 598 }
+          ]
+        },
+        {
+          id: 'VN', name: 'Viêt Nam', region: 'Asie du Sud-Est', biome: 'tropical', dev: 2,
+          maxMines: 260000, maxSoldiers: 650000, cx: 1126, cy: 492,
+          d: 'M1110,456 L1142,462 L1140,528 L1112,524 Z',
+          troops: [
+            { name: 'Éclaireur Bambou', art: 'infantry_green', atk: 18, def: 16, hp: 90 },
+            { name: 'Sapeur des tunnels', art: 'infantry_gold', atk: 28, def: 22, hp: 120 },
+            { name: 'Batterie Dragon Rouge', art: 'artillery', atk: 44, def: 28, hp: 146 },
+            { name: 'Char T-90S', art: 'tank', atk: 67, def: 56, hp: 250 },
+            { name: 'Faucon de la Baie', art: 'jet', atk: 102, def: 83, hp: 384 },
+            { name: 'Dragon d’Halong', art: 'carrier', atk: 151, def: 133, hp: 600 }
+          ]
+        },
+        {
+          id: 'ID', name: 'Indonésie', region: 'Asie du Sud-Est', biome: 'tropical', dev: 2,
+          maxMines: 400000, maxSoldiers: 1000000, cx: 1146, cy: 572,
+          d: 'M1076,554 L1218,556 L1214,592 L1078,590 Z',
+          troops: [
+            { name: 'Fusilier marin', art: 'infantry_red', atk: 18, def: 16, hp: 90 },
+            { name: 'Commando Komodo', art: 'heli', atk: 28, def: 21, hp: 118 },
+            { name: 'Batterie Krakatoa', art: 'artillery', atk: 45, def: 28, hp: 148 },
+            { name: 'Char Harimau', art: 'tank', atk: 67, def: 56, hp: 250 },
+            { name: 'Aigle de Java', art: 'jet', atk: 102, def: 83, hp: 384 },
+            { name: 'Flotte Archipel', art: 'carrier', atk: 152, def: 134, hp: 605 }
+          ]
+        },
+        {
+          id: 'AU', name: 'Australie', region: 'Océanie', biome: 'aride', dev: 3,
+          maxMines: 620000, maxSoldiers: 1550000, cx: 1218, cy: 674,
+          d: 'M1134,622 L1298,622 L1306,722 L1144,724 Z',
+          troops: [
+            { name: 'Ranger de l’Outback', art: 'infantry_gold', atk: 18, def: 16, hp: 90 },
+            { name: 'Éclaireur Kangourou', art: 'cavalry', atk: 28, def: 21, hp: 118 },
+            { name: 'Artillerie du Désert', art: 'artillery', atk: 45, def: 28, hp: 148 },
+            { name: 'Blindé Bushmaster', art: 'tank', atk: 68, def: 57, hp: 252 },
+            { name: 'Faucon du Pacifique', art: 'jet', atk: 104, def: 84, hp: 390 },
+            { name: 'Croiseur Southern Cross', art: 'carrier', atk: 154, def: 136, hp: 615 }
+          ]
+        }
+      ];
+
+      // =========================================================================
+      // 4. DRAPEAUX VECTORIELS & ILLUSTRATIONS SVG DES TROUPES
+      // =========================================================================
+      function getFlagSvg(id, cls) {
+        var c = cls || 'flag-svg-sm';
+        var inner = '<rect width="60" height="40" fill="#1e293b"/><circle cx="30" cy="20" r="10" fill="#f59e0b"/>';
+        switch (id) {
+          case 'GL':
+            inner = '<rect width="60" height="20" fill="#ffffff"/><rect y="20" width="60" height="20" fill="#d00c33"/><path d="M12,20 A12,12 0 0,1 36,20 Z" fill="#d00c33"/><path d="M12,20 A12,12 0 0,0 36,20 Z" fill="#ffffff"/>';
+            break;
+          case 'CA':
+            inner = '<rect width="15" height="40" fill="#d80621"/><rect x="15" width="30" height="40" fill="#ffffff"/><rect x="45" width="15" height="40" fill="#d80621"/><polygon points="30,10 33,18 40,18 34,23 36,30 30,26 24,30 26,23 20,18 27,18" fill="#d80621"/>';
+            break;
+          case 'US':
+            inner = '<rect width="60" height="40" fill="#b22234"/><rect y="6" width="60" height="5" fill="#fff"/><rect y="16" width="60" height="5" fill="#fff"/><rect y="26" width="60" height="5" fill="#fff"/><rect y="35" width="60" height="5" fill="#fff"/><rect width="26" height="22" fill="#3c3b6e"/>';
+            break;
+          case 'MX':
+            inner = '<rect width="20" height="40" fill="#006847"/><rect x="20" width="20" height="40" fill="#ffffff"/><rect x="40" width="20" height="40" fill="#ce1126"/><circle cx="30" cy="20" r="4" fill="#8b5a2b"/>';
+            break;
+          case 'CO':
+            inner = '<rect width="60" height="20" fill="#fcd116"/><rect y="20" width="60" height="10" fill="#003893"/><rect y="30" width="60" height="10" fill="#ce1126"/>';
+            break;
+          case 'PE':
+            inner = '<rect width="20" height="40" fill="#d91023"/><rect x="20" width="20" height="40" fill="#ffffff"/><rect x="40" width="20" height="40" fill="#d91023"/>';
+            break;
+          case 'BR':
+            inner = '<rect width="60" height="40" fill="#009c3b"/><polygon points="30,5 54,20 30,35 6,20" fill="#ffdf00"/><circle cx="30" cy="20" r="8" fill="#002776"/>';
+            break;
+          case 'CL':
+            inner = '<rect width="60" height="20" fill="#ffffff"/><rect y="20" width="60" height="20" fill="#d52b1e"/><rect width="20" height="20" fill="#0039a6"/><circle cx="10" cy="10" r="4" fill="#ffffff"/>';
+            break;
+          case 'AR':
+            inner = '<rect width="60" height="13" fill="#74acdf"/><rect y="13" width="60" height="14" fill="#ffffff"/><rect y="27" width="60" height="13" fill="#74acdf"/><circle cx="30" cy="20" r="4" fill="#f6b40e"/>';
+            break;
+          case 'IS':
+            inner = '<rect width="60" height="40" fill="#02529c"/><rect x="16" width="8" height="40" fill="#fff"/><rect y="16" width="60" height="8" fill="#fff"/><rect x="18" width="4" height="40" fill="#dc1e35"/><rect y="18" width="60" height="4" fill="#dc1e35"/>';
+            break;
+          case 'GB':
+            inner = '<rect width="60" height="40" fill="#012169"/><path d="M0,0 L60,40 M60,0 L0,40" stroke="#fff" stroke-width="6"/><rect x="25" width="10" height="40" fill="#fff"/><rect y="15" width="60" height="10" fill="#fff"/><rect x="27" width="6" height="40" fill="#c8102e"/><rect y="17" width="60" height="6" fill="#c8102e"/>';
+            break;
+          case 'FR':
+            inner = '<rect width="20" height="40" fill="#002395"/><rect x="20" width="20" height="40" fill="#ffffff"/><rect x="40" width="20" height="40" fill="#ed2939"/>';
+            break;
+          case 'ES':
+            inner = '<rect width="60" height="10" fill="#aa151b"/><rect y="10" width="60" height="20" fill="#f1bf00"/><rect y="30" width="60" height="10" fill="#aa151b"/>';
+            break;
+          case 'DE':
+            inner = '<rect width="60" height="13" fill="#000000"/><rect y="13" width="60" height="14" fill="#dd0000"/><rect y="27" width="60" height="13" fill="#ffce00"/>';
+            break;
+          case 'IT':
+            inner = '<rect width="20" height="40" fill="#009246"/><rect x="20" width="20" height="40" fill="#ffffff"/><rect x="40" width="20" height="40" fill="#ce2b37"/>';
+            break;
+          case 'NO':
+            inner = '<rect width="60" height="40" fill="#ba0c2f"/><rect x="16" width="8" height="40" fill="#fff"/><rect y="16" width="60" height="8" fill="#fff"/><rect x="18" width="4" height="40" fill="#00205b"/><rect y="18" width="60" height="4" fill="#00205b"/>';
+            break;
+          case 'SE':
+            inner = '<rect width="60" height="40" fill="#006aa7"/><rect x="18" width="7" height="40" fill="#fecc02"/><rect y="16" width="60" height="7" fill="#fecc02"/>';
+            break;
+          case 'PL':
+            inner = '<rect width="60" height="20" fill="#ffffff"/><rect y="20" width="60" height="20" fill="#dc143c"/>';
+            break;
+          case 'UA':
+            inner = '<rect width="60" height="20" fill="#0057b7"/><rect y="20" width="60" height="20" fill="#ffd700"/>';
+            break;
+          case 'RU':
+            inner = '<rect width="60" height="13" fill="#ffffff"/><rect y="13" width="60" height="14" fill="#0039a6"/><rect y="27" width="60" height="13" fill="#d52b1e"/>';
+            break;
+          case 'TR':
+            inner = '<rect width="60" height="40" fill="#e30a17"/><circle cx="24" cy="20" r="9" fill="#ffffff"/><circle cx="27" cy="20" r="7" fill="#e30a17"/><polygon points="36,20 41,22 39,17 42,14 37,15" fill="#ffffff"/>';
+            break;
+          case 'SA':
+            inner = '<rect width="60" height="40" fill="#006c35"/><rect x="14" y="25" width="32" height="3" fill="#ffffff"/><rect x="18" y="14" width="24" height="6" rx="2" fill="#ffffff"/>';
+            break;
+          case 'MA':
+            inner = '<rect width="60" height="40" fill="#c1272d"/><polygon points="30,11 33,20 42,20 35,25 37,33 30,28 23,33 25,25 18,20 27,20" fill="none" stroke="#006233" stroke-width="2"/>';
+            break;
+          case 'EG':
+            inner = '<rect width="60" height="13" fill="#ce1126"/><rect y="13" width="60" height="14" fill="#ffffff"/><rect y="27" width="60" height="13" fill="#000000"/><circle cx="30" cy="20" r="3.5" fill="#c09300"/>';
+            break;
+          case 'NG':
+            inner = '<rect width="20" height="40" fill="#008751"/><rect x="20" width="20" height="40" fill="#ffffff"/><rect x="40" width="20" height="40" fill="#008751"/>';
+            break;
+          case 'ZA':
+            inner = '<rect width="60" height="20" fill="#e03c31"/><rect y="20" width="60" height="20" fill="#001489"/><polygon points="0,0 26,20 0,40" fill="#007749"/><rect x="22" y="17" width="38" height="6" fill="#007749"/>';
+            break;
+          case 'MG':
+            inner = '<rect width="20" height="40" fill="#ffffff"/><rect x="20" width="40" height="20" fill="#fc3d32"/><rect x="20" y="20" width="40" height="20" fill="#007e3a"/>';
+            break;
+          case 'KZ':
+            inner = '<rect width="60" height="40" fill="#00afca"/><circle cx="30" cy="20" r="8" fill="#fec50c"/>';
+            break;
+          case 'IN':
+            inner = '<rect width="60" height="13" fill="#ff9933"/><rect y="13" width="60" height="14" fill="#ffffff"/><rect y="27" width="60" height="13" fill="#138808"/><circle cx="30" cy="20" r="4" fill="#000080"/>';
+            break;
+          case 'CN':
+            inner = '<rect width="60" height="40" fill="#de2910"/><polygon points="12,8 14,14 20,14 15,17 17,22 12,19 7,22 9,17 4,14 10,14" fill="#ffde00"/>';
+            break;
+          case 'JP':
+            inner = '<rect width="60" height="40" fill="#ffffff"/><circle cx="30" cy="20" r="10" fill="#bc002d"/>';
+            break;
+          case 'KR':
+            inner = '<rect width="60" height="40" fill="#ffffff"/><path d="M21,20 A9,9 0 0,1 39,20 Z" fill="#cd2e3a"/><path d="M21,20 A9,9 0 0,0 39,20 Z" fill="#0047a0"/>';
+            break;
+          case 'TH':
+            inner = '<rect width="60" height="40" fill="#a51931"/><rect y="7" width="60" height="26" fill="#ffffff"/><rect y="13" width="60" height="14" fill="#2d2a4a"/>';
+            break;
+          case 'VN':
+            inner = '<rect width="60" height="40" fill="#da251d"/><polygon points="30,10 33,18 41,18 35,23 37,31 30,26 23,31 25,23 19,18 27,18" fill="#ffff00"/>';
+            break;
+          case 'ID':
+            inner = '<rect width="60" height="20" fill="#ce1126"/><rect y="20" width="60" height="20" fill="#ffffff"/>';
+            break;
+          case 'AU':
+            inner = '<rect width="60" height="40" fill="#00008b"/><rect width="26" height="20" fill="#012169"/><rect x="11" width="4" height="20" fill="#fff"/><rect y="8" width="26" height="4" fill="#fff"/><circle cx="44" cy="14" r="3" fill="#fff"/><circle cx="44" cy="28" r="3" fill="#fff"/>';
+            break;
+        }
+        return '<svg class="' + c + '" viewBox="0 0 60 40">' + inner + '</svg>';
+      }
+
+      function getTroopSvg(art) {
+        switch (art) {
+          case 'gl_warrior':
+            return '<svg viewBox="0 0 64 64" width="56" height="56"><circle cx="30" cy="18" r="9" fill="#fed7aa" stroke="#0f172a" stroke-width="2"/><path d="M18,22 Q30,8 42,22" fill="#f8fafc" stroke="#0f172a" stroke-width="2"/><rect x="19" y="27" width="22" height="25" rx="6" fill="#0284c7" stroke="#0f172a" stroke-width="2"/><rect x="27" y="27" width="6" height="25" fill="#f8fafc"/><line x1="48" y1="12" x2="48" y2="54" stroke="#78350f" stroke-width="3.5"/><path d="M48,14 L58,10 L58,24 L48,20 Z" fill="#38bdf8" stroke="#0f172a" stroke-width="1.8"/></svg>';
+          case 'gl_harpoon':
+            return '<svg viewBox="0 0 64 64" width="56" height="56"><circle cx="28" cy="18" r="9" fill="#fed7aa" stroke="#0f172a" stroke-width="2"/><path d="M18,16 L38,16 L34,9 L22,9 Z" fill="#e2e8f0" stroke="#0f172a" stroke-width="2"/><rect x="18" y="27" width="20" height="25" rx="6" fill="#1d4ed8" stroke="#0f172a" stroke-width="2"/><line x1="10" y1="46" x2="54" y2="14" stroke="#78350f" stroke-width="3.5"/><polygon points="56,12 46,13 51,21" fill="#94a3b8" stroke="#0f172a" stroke-width="1.8"/></svg>';
+          case 'gl_penguin':
+            return '<svg viewBox="0 0 64 64" width="56" height="56"><ellipse cx="26" cy="36" rx="13" ry="18" fill="#0f172a"/><ellipse cx="26" cy="38" rx="8" ry="13" fill="#ffffff"/><circle cx="26" cy="18" r="9" fill="#0f172a"/><circle cx="23" cy="16" r="2" fill="#ffffff"/><polygon points="26,18 35,20 26,22" fill="#f59e0b"/><circle cx="46" cy="36" r="10" fill="#1e293b" stroke="#0f172a" stroke-width="2"/><path d="M46,26 Q50,18 55,19" fill="none" stroke="#d97706" stroke-width="2.5"/><circle cx="56" cy="19" r="3" fill="#ef4444"/></svg>';
+          case 'gl_bear':
+            return '<svg viewBox="0 0 64 64" width="56" height="56"><ellipse cx="32" cy="38" rx="22" ry="13" fill="#f8fafc" stroke="#0f172a" stroke-width="2"/><circle cx="50" cy="28" r="9" fill="#f8fafc" stroke="#0f172a" stroke-width="2"/><circle cx="47" cy="21" r="3" fill="#f8fafc" stroke="#0f172a" stroke-width="1.8"/><circle cx="53" cy="26" r="1.8" fill="#0f172a"/><path d="M22,27 L40,27 L38,42 L24,42 Z" fill="#0284c7" stroke="#0f172a" stroke-width="2"/><rect x="16" y="47" width="6" height="9" rx="2" fill="#f8fafc" stroke="#0f172a" stroke-width="2"/><rect x="40" y="47" width="6" height="9" rx="2" fill="#f8fafc" stroke="#0f172a" stroke-width="2"/></svg>';
+          case 'gl_icebreaker':
+            return '<svg viewBox="0 0 64 64" width="56" height="56"><polygon points="8,42 54,42 46,54 14,54" fill="#0284c7" stroke="#0f172a" stroke-width="2"/><rect x="20" y="26" width="22" height="16" rx="3" fill="#f8fafc" stroke="#0f172a" stroke-width="2"/><rect x="26" y="16" width="8" height="10" fill="#ef4444" stroke="#0f172a" stroke-width="2"/></svg>';
+          case 'gl_citadel':
+            return '<svg viewBox="0 0 64 64" width="56" height="56"><polygon points="12,52 22,16 32,26 42,14 52,52" fill="#bae6fd" stroke="#0f172a" stroke-width="2"/><rect x="24" y="34" width="16" height="18" fill="#0369a1" stroke="#0f172a" stroke-width="2"/></svg>';
+          case 'infantry_red':
+          case 'infantry_blue':
+          case 'infantry_green':
+          case 'infantry_gold':
+            var suit = art === 'infantry_red' ? '#dc2626' : (art === 'infantry_blue' ? '#2563eb' : (art === 'infantry_gold' ? '#d97706' : '#16a34a'));
+            return '<svg viewBox="0 0 64 64" width="56" height="56"><circle cx="30" cy="18" r="8" fill="#fed7aa" stroke="#0f172a" stroke-width="2"/><path d="M21,16 Q30,8 39,16 Z" fill="#334155" stroke="#0f172a" stroke-width="2"/><rect x="20" y="26" width="20" height="24" rx="5" fill="' + suit + '" stroke="#0f172a" stroke-width="2"/><rect x="34" y="31" width="20" height="5" rx="2" fill="#1e293b"/></svg>';
+          case 'cavalry':
+            return '<svg viewBox="0 0 64 64" width="56" height="56"><ellipse cx="32" cy="40" rx="19" ry="10" fill="#92400e" stroke="#0f172a" stroke-width="2"/><circle cx="47" cy="28" r="7" fill="#92400e" stroke="#0f172a" stroke-width="2"/><rect x="25" y="21" width="12" height="14" rx="4" fill="#2563eb" stroke="#0f172a" stroke-width="2"/><line x1="12" y1="30" x2="54" y2="14" stroke="#f59e0b" stroke-width="3"/></svg>';
+          case 'artillery':
+            return '<svg viewBox="0 0 64 64" width="56" height="56"><line x1="16" y1="42" x2="52" y2="22" stroke="#334155" stroke-width="7" stroke-linecap="round"/><circle cx="24" cy="44" r="10" fill="#475569" stroke="#0f172a" stroke-width="2.5"/><circle cx="24" cy="44" r="4" fill="#cbd5e1"/></svg>';
+          case 'tank':
+            return '<svg viewBox="0 0 64 64" width="56" height="56"><rect x="10" y="38" width="44" height="13" rx="6" fill="#334155" stroke="#0f172a" stroke-width="2"/><rect x="16" y="28" width="32" height="11" rx="4" fill="#15803d" stroke="#0f172a" stroke-width="2"/><rect x="22" y="20" width="18" height="9" rx="3" fill="#166534" stroke="#0f172a" stroke-width="2"/><line x1="40" y1="24" x2="58" y2="24" stroke="#0f172a" stroke-width="4"/></svg>';
+          case 'heli':
+            return '<svg viewBox="0 0 64 64" width="56" height="56"><line x1="10" y1="18" x2="54" y2="18" stroke="#0f172a" stroke-width="3.5"/><line x1="32" y1="18" x2="32" y2="26" stroke="#0f172a" stroke-width="3"/><ellipse cx="32" cy="34" rx="16" ry="9" fill="#0284c7" stroke="#0f172a" stroke-width="2"/><line x1="8" y1="34" x2="18" y2="34" stroke="#0f172a" stroke-width="4"/></svg>';
+          case 'jet':
+            return '<svg viewBox="0 0 64 64" width="56" height="56"><polygon points="32,8 56,44 36,40 32,54 28,40 8,44" fill="#3b82f6" stroke="#0f172a" stroke-width="2"/><polygon points="32,16 36,30 28,30" fill="#e0f2fe"/></svg>';
+          case 'mecha':
+            return '<svg viewBox="0 0 64 64" width="56" height="56"><rect x="20" y="18" width="24" height="22" rx="4" fill="#7c3aed" stroke="#0f172a" stroke-width="2"/><rect x="25" y="10" width="14" height="8" rx="2" fill="#c4b5fd" stroke="#0f172a" stroke-width="2"/><rect x="12" y="20" width="6" height="18" rx="2" fill="#4c1d95"/><rect x="46" y="20" width="6" height="18" rx="2" fill="#4c1d95"/><rect x="22" y="40" width="7" height="15" fill="#1e293b"/><rect x="35" y="40" width="7" height="15" fill="#1e293b"/></svg>';
+          default:
+            return '<svg viewBox="0 0 64 64" width="56" height="56"><polygon points="8,42 56,42 48,54 14,54" fill="#1e293b" stroke="#0f172a" stroke-width="2"/><rect x="18" y="30" width="24" height="12" fill="#64748b" stroke="#0f172a" stroke-width="2"/><rect x="26" y="20" width="10" height="10" fill="#f59e0b" stroke="#0f172a" stroke-width="2"/></svg>';
+        }
+      }
+
+      function getGeniusSvg() {
+        return '<svg viewBox="0 0 64 64" width="54" height="54"><circle cx="32" cy="24" r="11" fill="#fed7aa" stroke="#0f172a" stroke-width="2"/><path d="M18,22 Q32,6 46,22 Z" fill="#6d28d9" stroke="#0f172a" stroke-width="2"/><circle cx="28" cy="23" r="3" fill="none" stroke="#0f172a" stroke-width="1.8"/><circle cx="36" cy="23" r="3" fill="none" stroke="#0f172a" stroke-width="1.8"/><path d="M20,36 L44,36 L48,56 L16,56 Z" fill="#7c3aed" stroke="#0f172a" stroke-width="2"/><circle cx="50" cy="16" r="5" fill="#facc15" stroke="#0f172a" stroke-width="1.5"/></svg>';
+      }
+
+      // =========================================================================
+      // 5. UTILITAIRES MÉTIER, DISTANCE RÉELLE & CALCULS
+      // =========================================================================
+      function formatFr(n) {
+        var val = Math.floor(Number(n) || 0);
+        return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+      }
+
+      function formatDuration(sec) {
+        var s = Math.max(0, Math.ceil(sec));
+        var d = Math.floor(s / 86400);
+        var h = Math.floor((s % 86400) / 3600);
+        var m = Math.floor((s % 3600) / 60);
+        var r = s % 60;
+        if (d > 0) return d + 'j ' + (h < 10 ? '0' : '') + h + 'h ' + (m < 10 ? '0' : '') + m + 'm';
+        if (h > 0) return h + 'h ' + (m < 10 ? '0' : '') + m + 'm ' + (r < 10 ? '0' : '') + r + 's';
+        return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r;
+      }
+
+      function getCountryById(id) {
+        for (var i = 0; i < COUNTRIES.length; i++) {
+          if (COUNTRIES[i].id === id) return COUNTRIES[i];
+        }
+        return null;
+      }
+
+      function calcFarmsForSoldiers(maxSoldiers) {
+        return Math.ceil(maxSoldiers / 2.5);
+      }
+
+      function getAllTroopsForCountry(country) {
+        var list = [];
+        for (var i = 0; i < country.troops.length; i++) {
+          var t = country.troops[i];
+          var tier = TROOP_TIERS[i] || TROOP_TIERS[TROOP_TIERS.length - 1];
+          list.push({
+            id: country.id + '_t' + i,
+            index: i,
+            name: t.name,
+            art: t.art,
+            cost: tier.cost,
+            atk: t.atk,
+            def: t.def,
+            hp: t.hp
+          });
+        }
+        return list;
+      }
+
+      function getUnlockedTroopCount(devLevel) {
+        var info = DEV_LEVELS[devLevel] || DEV_LEVELS[3];
+        return info.count;
+      }
+
+      function getTroopKnowledgeRequirement(unlockedCount, troopIndex) {
+        var reqPair = LAST_TWO_KNOWLEDGE_REQ[unlockedCount] || [150, 450];
+        if (troopIndex === unlockedCount - 2) return reqPair[0];
+        if (troopIndex === unlockedCount - 1) return reqPair[1];
+        return 0;
+      }
+
+      // Calcul du temps de marche militaire en jours/heures réels selon la distance sur la carte
+      function calcMilitaryTravelSeconds(fromCountry, toCountry) {
+        if (!fromCountry || !toCountry) return 10800;
+        var dx = toCountry.cx - fromCountry.cx;
+        var dy = toCountry.cy - fromCountry.cy;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        // Distance minimale ~50px (ex. France -> Espagne = ~3h = 10 800s), max ~1250px (= ~3 jours = 259 200s)
+        var sec = Math.round(7200 + dist * 200);
+        return Math.max(10800, Math.min(259200, sec));
+      }
+
+      // Coût colossal d'annexion d'un pays supplémentaire
+      function calcAnnexationCost(targetCountry, currentOwnedCount) {
+        var dev = targetCountry ? (targetCountry.dev || 2) : 2;
+        var empireScale = Math.pow(1.8, Math.max(0, currentOwnedCount - 1));
+        return Math.round(500000000 * dev * empireScale);
+      }
+
+      // =========================================================================
+      // 6. ÉTAT DU JEU & SAUVEGARDE AUTO CLOUD (PSEUDO + PIN 4 CHIFFRES)
+      // =========================================================================
+      var state = {
+        activeTab: 'map',
+        selectedId: null,
+        ownedIds: [],
+        activeOwnedId: null,
+        lastSavedAt: Date.now(),
+        countryData: {},
+        neutralDefense: {},
+        campaigns: [],
+        cloud: {
+          username: '',
+          pin: '',
+          connected: false,
+          authMode: 'login'
+        },
+        multi: {
+          open: false,
+          connected: false,
+          roomCode: '',
+          playerId: 'p_' + Math.random().toString(36).substring(2, 9),
+          players: {},
+          chat: [],
+          lastCombatReport: ''
+        }
+      };
+
+      function getActiveCountry() {
+        if (state.activeOwnedId && state.ownedIds.indexOf(state.activeOwnedId) !== -1) {
+          return getCountryById(state.activeOwnedId);
+        }
+        if (state.ownedIds.length > 0) {
+          state.activeOwnedId = state.ownedIds[0];
+          return getCountryById(state.activeOwnedId);
+        }
+        return null;
+      }
+
+      function isCountryOwned(id) {
+        return state.ownedIds.indexOf(id) !== -1;
+      }
+
+      function ensureCountryState(country) {
+        if (!state.countryData[country.id]) {
+          var troopsMap = {};
+          var allTroops = getAllTroopsForCountry(country);
+          if (allTroops.length > 0) {
+            troopsMap[allTroops[0].id] = 1;
+          }
+          state.countryData[country.id] = {
+            gold: STARTING_GOLD,
+            mines: STARTING_MINES,
+            farms: STARTING_FARMS,
+            devLevel: country.dev,
+            knowledge: 0,
+            totalKnowledgeEarned: 0,
+            troops: troopsMap,
+            genius: {
+              activeMission: null,
+              logs: ['Ton Génie est prêt à explorer le monde pour acquérir des Connaissances.']
+            }
+          };
+        }
+        var cs = state.countryData[country.id];
+        if (typeof cs.devLevel !== 'number') cs.devLevel = country.dev;
+        if (typeof cs.knowledge !== 'number') cs.knowledge = 0;
+        if (!cs.genius) cs.genius = { activeMission: null, logs: [] };
+        return cs;
+      }
+
+      function getNeutralGarrison(country) {
+        if (!state.neutralDefense[country.id]) {
+          var baseSoldiers = country.dev * 1200;
+          var baseDef = country.dev * 35000;
+          state.neutralDefense[country.id] = {
+            soldiers: baseSoldiers,
+            maxSoldiers: baseSoldiers,
+            defense: baseDef,
+            treasury: country.dev * 450000
+          };
+        }
+        return state.neutralDefense[country.id];
+      }
+
+      function getTotalSoldiers(country) {
+        var cs = ensureCountryState(country);
+        var total = 0;
+        for (var k in cs.troops) {
+          if (Object.prototype.hasOwnProperty.call(cs.troops, k)) {
+            total += Number(cs.troops[k]) || 0;
+          }
+        }
+        return total;
+      }
+
+      function getEmpireTotals() {
+        var totalGold = 0;
+        var totalRate = 0;
+        var totalKnow = 0;
+        for (var i = 0; i < state.ownedIds.length; i++) {
+          var c = getCountryById(state.ownedIds[i]);
+          if (c) {
+            var cs = ensureCountryState(c);
+            totalGold += cs.gold;
+            totalRate += cs.mines * MINE_RATE;
+            totalKnow += cs.knowledge;
+          }
+        }
+        return { gold: totalGold, rate: totalRate, knowledge: totalKnow };
+      }
+
+      function buildSaveObject() {
+        return {
+          v: 10,
+          activeTab: state.activeTab,
+          selectedId: state.selectedId,
+          ownedIds: state.ownedIds,
+          activeOwnedId: state.activeOwnedId,
+          lastSavedAt: Date.now(),
+          countryData: state.countryData,
+          neutralDefense: state.neutralDefense,
+          campaigns: state.campaigns,
+          multi: {
+            roomCode: state.multi.roomCode,
+            connected: state.multi.connected,
+            playerId: state.multi.playerId
+          }
+        };
+      }
+
+      function applySaveObject(parsed) {
+        if (!parsed || typeof parsed !== 'object') return false;
+        var validOwned = [];
+        if (Array.isArray(parsed.ownedIds)) {
+          for (var i = 0; i < parsed.ownedIds.length; i++) {
+            if (getCountryById(parsed.ownedIds[i])) validOwned.push(parsed.ownedIds[i]);
+          }
+        } else if (parsed.ownedId && getCountryById(parsed.ownedId)) {
+          validOwned.push(parsed.ownedId);
+        }
+        state.ownedIds = validOwned;
+        state.activeOwnedId = (parsed.activeOwnedId && validOwned.indexOf(parsed.activeOwnedId) !== -1)
+          ? parsed.activeOwnedId
+          : (validOwned[0] || null);
+        state.selectedId = (parsed.selectedId && getCountryById(parsed.selectedId)) ? parsed.selectedId : state.activeOwnedId;
+        state.activeTab = (parsed.activeTab === 'country' && state.ownedIds.length > 0) ? 'country' : 'map';
+        state.lastSavedAt = typeof parsed.lastSavedAt === 'number' && !isNaN(parsed.lastSavedAt) ? parsed.lastSavedAt : Date.now();
+        state.countryData = parsed.countryData && typeof parsed.countryData === 'object' ? parsed.countryData : {};
+        state.neutralDefense = parsed.neutralDefense && typeof parsed.neutralDefense === 'object' ? parsed.neutralDefense : {};
+        state.campaigns = Array.isArray(parsed.campaigns) ? parsed.campaigns : [];
+        if (parsed.multi && typeof parsed.multi === 'object') {
+          state.multi.roomCode = parsed.multi.roomCode || '';
+          state.multi.connected = Boolean(parsed.multi.connected && parsed.multi.roomCode);
+          if (parsed.multi.playerId) state.multi.playerId = parsed.multi.playerId;
+        }
+        return true;
+      }
+
+      function getCloudDocRef(username, pin) {
+        if (!fbDb) return null;
+        var cleanUser = (username || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+        var cleanPin = (pin || '').trim();
+        if (!cleanUser || cleanPin.length !== 4) return null;
+        return doc(fbDb, 'artifacts', appId, 'public', 'data', 'player_saves', cleanUser + '_' + cleanPin);
+      }
+
+      function pushCloudSave(showTime) {
+        state.lastSavedAt = Date.now();
+        var payload = buildSaveObject();
+        try {
+          localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify({
+            save: payload,
+            cloud: { username: state.cloud.username, pin: state.cloud.pin }
+          }));
+        } catch (e) {}
+
+        if (fbDb && fbUser && state.cloud.connected && state.cloud.username && state.cloud.pin) {
+          var ref = getCloudDocRef(state.cloud.username, state.cloud.pin);
+          if (ref) {
+            setDoc(ref, {
+              username: state.cloud.username,
+              updatedAt: Date.now(),
+              payloadJson: JSON.stringify(payload)
+            }).then(function () {
+              if (showTime) updateCloudHudStatus();
+            }).catch(function () {});
+          }
+        }
+        if (showTime) updateCloudHudStatus();
+      }
+
+      function pullCloudSave(username, pin, silent) {
+        return new Promise(function (resolve) {
+          var ref = getCloudDocRef(username, pin);
+          if (!ref || !fbUser) {
+            resolve({ ok: false, reason: 'Connexion au serveur en cours, réessaie dans 2 secondes.' });
+            return;
+          }
+          getDoc(ref).then(function (snap) {
+            if (!snap.exists()) {
+              resolve({ ok: false, reason: 'Aucune partie trouvée pour ce Pseudo + PIN.' });
+              return;
+            }
+            var data = snap.data();
+            if (!data || !data.payloadJson) {
+              resolve({ ok: false, reason: 'Sauvegarde vide.' });
+              return;
+            }
+            var parsed = JSON.parse(data.payloadJson);
+            applySaveObject(parsed);
+            state.cloud.username = username.trim();
+            state.cloud.pin = pin.trim();
+            state.cloud.connected = true;
+            processOfflineProgress();
+            updateNavigationUI();
+            refreshMapStyles();
+            renderGeniusMarkerOnMap();
+            renderCampaignsPanel();
+            if (state.multi.connected) connectToMultiplayerRoom(state.multi.roomCode);
+            if (state.activeTab === 'country' && state.ownedIds.length > 0) renderCountryView();
+            else renderMapCard();
+            updateCloudHudStatus();
+            if (!silent) pushCloudSave(true);
+            resolve({ ok: true });
+          }).catch(function () {
+            resolve({ ok: false, reason: 'Erreur réseau lors du chargement.' });
+          });
+        });
+      }
+
+      function registerCloudSave(username, pin) {
+        return new Promise(function (resolve) {
+          var ref = getCloudDocRef(username, pin);
+          if (!ref || !fbUser) {
+            resolve({ ok: false, reason: 'Connexion au serveur en cours, réessaie dans 2 secondes.' });
+            return;
+          }
+          getDoc(ref).then(function (snap) {
+            if (snap.exists()) {
+              resolve({ ok: false, reason: 'Ce Pseudo + PIN existe déjà ! Choisis "Reprendre ma partie" ou un autre PIN.' });
+              return;
+            }
+            state.cloud.username = username.trim();
+            state.cloud.pin = pin.trim();
+            state.cloud.connected = true;
+            pushCloudSave(true);
+            updateCloudHudStatus();
+            resolve({ ok: true });
+          }).catch(function () {
+            resolve({ ok: false, reason: 'Impossible de créer le profil pour le moment.' });
+          });
+        });
+      }
+
+      function updateCloudHudStatus() {
+        var btn = document.getElementById('btn-cloud-modal');
+        var lbl = document.getElementById('cloud-status-text');
+        var activeLbl = document.getElementById('cloud-active-user-label');
+        var actionsRow = document.getElementById('cloud-connected-actions');
+        if (!btn || !lbl) return;
+
+        if (state.cloud.connected && state.cloud.username) {
+          btn.classList.add('cloud-active');
+          var d = new Date();
+          var hh = (d.getHours() < 10 ? '0' : '') + d.getHours();
+          var mm = (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
+          lbl.textContent = state.cloud.username + ' (' + hh + ':' + mm + ')';
+          if (activeLbl) activeLbl.textContent = '✓ Connecté : ' + state.cloud.username;
+          if (actionsRow) actionsRow.style.display = 'flex';
+        } else {
+          btn.classList.remove('cloud-active');
+          lbl.textContent = 'Sauvegarde Auto';
+          if (actionsRow) actionsRow.style.display = 'none';
+        }
+      }
+
+      function processOfflineProgress() {
+        var elapsedSec = Math.max(0, Math.floor((Date.now() - state.lastSavedAt) / 1000));
+        var msgParts = [];
+
+        if (elapsedSec >= 5 && state.ownedIds.length > 0) {
+          var cappedSec = Math.min(elapsedSec, 172800);
+          var totalOfflineGold = 0;
+          for (var i = 0; i < state.ownedIds.length; i++) {
+            var c = getCountryById(state.ownedIds[i]);
+            if (c) {
+              var cs = ensureCountryState(c);
+              var earned = cappedSec * cs.mines * MINE_RATE;
+              cs.gold += earned;
+              totalOfflineGold += earned;
+            }
+          }
+          if (totalOfflineGold > 0) {
+            msgParts.push('+' + formatFr(totalOfflineGold) + ' or récolté hors-ligne (' + formatDuration(cappedSec) + ')');
+          }
+        }
+
+        for (var j = 0; j < state.ownedIds.length; j++) {
+          var oc = getCountryById(state.ownedIds[j]);
+          if (oc) {
+            var ocs = ensureCountryState(oc);
+            if (ocs.genius.activeMission && Date.now() >= ocs.genius.activeMission.startedAt + ocs.genius.activeMission.durationMs) {
+              completeGeniusMission(oc, true);
+              msgParts.push('Le Génie de ' + oc.name + ' est revenu !');
+            }
+          }
+        }
+
+        var resolvedCount = resolveArrivedCampaigns(true);
+        if (resolvedCount > 0) {
+          msgParts.push(resolvedCount + ' offensive(s) militaire(s) arrivée(s) à destination !');
+        }
+
+        if (msgParts.length > 0) {
+          var toast = document.getElementById('offline-toast');
+          var txt = document.getElementById('offline-toast-text');
+          if (toast && txt) {
+            txt.textContent = '🎉 ' + msgParts.join(' · ');
+            toast.style.display = 'flex';
+          }
+          pushCloudSave(true);
+        }
+      }
+
+      // =========================================================================
+      // 7. RENDU DE LA CARTE TOPOGRAPHIQUE SVG & INTERACTIONS TACTILES
+      // =========================================================================
+      var worldMap = document.getElementById('worldMap');
+      var viewBox = { x: 0, y: 0, w: MAP_W, h: MAP_H };
+
+      function applyViewBox() {
+        viewBox.x = Math.max(-120, Math.min(MAP_W - viewBox.w + 120, viewBox.x));
+        viewBox.y = Math.max(-80, Math.min(MAP_H - viewBox.h + 80, viewBox.y));
+        worldMap.setAttribute('viewBox', viewBox.x.toFixed(1) + ' ' + viewBox.y.toFixed(1) + ' ' + viewBox.w.toFixed(1) + ' ' + viewBox.h.toFixed(1));
+      }
+
+      function zoomAtCenter(factor) {
+        var oldW = viewBox.w;
+        var oldH = viewBox.h;
+        viewBox.w = Math.max(280, Math.min(MAP_W, viewBox.w * factor));
+        viewBox.h = viewBox.w * (MAP_H / MAP_W);
+        viewBox.x += (oldW - viewBox.w) * 0.5;
+        viewBox.y += (oldH - viewBox.h) * 0.5;
+        applyViewBox();
+      }
+
+      function buildMapSvg() {
+        var defs =
+          '<defs>' +
+            '<radialGradient id="oceanGrad" cx="50%" cy="45%" r="65%">' +
+              '<stop offset="0%" stop-color="#1d4ed8"/>' +
+              '<stop offset="55%" stop-color="#0f3d68"/>' +
+              '<stop offset="100%" stop-color="#08203a"/>' +
+            '</radialGradient>' +
+          '</defs>';
+
+        var bg = '<rect x="-200" y="-200" width="1840" height="1230" fill="url(#oceanGrad)"/>';
+        var grid = '<g stroke="#38bdf8" stroke-opacity="0.14" stroke-width="1">';
+        for (var gx = 0; gx <= MAP_W; gx += 120) {
+          grid += '<line x1="' + gx + '" y1="0" x2="' + gx + '" y2="' + MAP_H + '"/>';
+        }
+        for (var gy = 0; gy <= MAP_H; gy += 118) {
+          grid += '<line x1="0" y1="' + gy + '" x2="' + MAP_W + '" y2="' + gy + '"/>';
+        }
+        grid += '</g>';
+
+        var shelves = '<g opacity="0.26">';
+        var shadows = '<g transform="translate(4, 6)" opacity="0.35">';
+        var shapes = '<g id="countries-layer">';
+        var labels = '<g id="labels-layer">';
+        var owners = '<g id="owners-layer" pointer-events="none">';
+
+        for (var i = 0; i < COUNTRIES.length; i++) {
+          var c = COUNTRIES[i];
+          var fill = BIOME_COLORS[c.biome] || BIOME_COLORS.tempere;
+          shelves += '<path d="' + c.d + '" fill="#38bdf8" stroke="#38bdf8" stroke-width="12" stroke-linejoin="round"/>';
+          shadows += '<path d="' + c.d + '" fill="#020617"/>';
+          shapes += '<path class="country-shape" data-id="' + c.id + '" d="' + c.d + '" fill="' + fill + '"/>';
+          labels += '<text class="country-label" data-label="' + c.id + '" x="' + c.cx + '" y="' + c.cy + '">' + c.name + '</text>';
+          owners += '<text class="owner-badge-text" data-owner-label="' + c.id + '" x="' + c.cx + '" y="' + (c.cy + 13) + '"></text>';
+        }
+
+        shelves += '</g>';
+        shadows += '</g>';
+        shapes += '</g>';
+        labels += '</g>';
+        owners += '</g>';
+
+        var routesLayer = '<g id="routes-map-layer" pointer-events="none"></g>';
+        worldMap.innerHTML = defs + bg + grid + shelves + shadows + shapes + labels + owners + routesLayer;
+        refreshMapStyles();
+        renderRoutesOnMap();
+      }
+
+      function refreshMapStyles() {
+        var geniusTargets = {};
+        for (var o = 0; o < state.ownedIds.length; o++) {
+          var oc = getCountryById(state.ownedIds[o]);
+          if (oc) {
+            var ocs = ensureCountryState(oc);
+            if (ocs.genius.activeMission) geniusTargets[ocs.genius.activeMission.targetId] = true;
+          }
+        }
+        var remoteOwners = getRemoteCountryOwners();
+
+        var paths = worldMap.querySelectorAll('.country-shape');
+        for (var i = 0; i < paths.length; i++) {
+          var id = paths[i].getAttribute('data-id');
+          var owned = isCountryOwned(id);
+          var remoteP = remoteOwners[id];
+          paths[i].classList.toggle('selected', id === state.selectedId);
+          paths[i].classList.toggle('owned', owned);
+          paths[i].classList.toggle('enemy-owned', Boolean(remoteP && !owned));
+          paths[i].classList.toggle('genius-target', Boolean(geniusTargets[id] && !owned));
+        }
+
+        var texts = worldMap.querySelectorAll('.country-label');
+        for (var j = 0; j < texts.length; j++) {
+          var lid = texts[j].getAttribute('data-label');
+          var c = getCountryById(lid);
+          if (c) {
+            var prefix = isCountryOwned(lid) ? '★ ' : (geniusTargets[lid] ? '🧠 ' : '');
+            texts[j].textContent = prefix + c.name;
+          }
+        }
+
+        var ownerTexts = worldMap.querySelectorAll('.owner-badge-text');
+        for (var k = 0; k < ownerTexts.length; k++) {
+          var oid = ownerTexts[k].getAttribute('data-owner-label');
+          if (isCountryOwned(oid) && state.multi.connected) {
+            ownerTexts[k].textContent = '(' + (state.cloud.username || 'Toi') + ')';
+          } else if (remoteOwners[oid]) {
+            ownerTexts[k].textContent = '⚔️ ' + remoteOwners[oid].name;
+          } else {
+            ownerTexts[k].textContent = '';
+          }
+        }
+      }
+
+      function renderRoutesOnMap() {
+        var layer = document.getElementById('routes-map-layer');
+        if (!layer) return;
+        var html = '';
+
+        // Trajets des Génies
+        for (var i = 0; i < state.ownedIds.length; i++) {
+          var owned = getCountryById(state.ownedIds[i]);
+          if (!owned) continue;
+          var cs = ensureCountryState(owned);
+          var mission = cs.genius.activeMission;
+          if (mission && mission.targetId && mission.targetId !== owned.id) {
+            var dest = getCountryById(mission.targetId);
+            if (dest) {
+              var ratio = Math.max(0, Math.min(1, (Date.now() - mission.startedAt) / mission.durationMs));
+              var mx = owned.cx + (dest.cx - owned.cx) * ratio;
+              var my = owned.cy + (dest.cy - owned.cy) * ratio;
+              html +=
+                '<line x1="' + owned.cx + '" y1="' + owned.cy + '" x2="' + dest.cx + '" y2="' + dest.cy + '" stroke="#e879f9" stroke-width="2.5" stroke-dasharray="6 5"/>' +
+                '<circle cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="10" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>' +
+                '<text x="' + mx.toFixed(1) + '" y="' + (my + 4).toFixed(1) + '" text-anchor="middle" font-size="11">🧠</text>';
+            }
+          }
+        }
+
+        // Trajets des campagnes militaires en cours
+        for (var c = 0; c < state.campaigns.length; c++) {
+          var camp = state.campaigns[c];
+          var fromC = getCountryById(camp.fromId);
+          var toC = getCountryById(camp.toId);
+          if (fromC && toC) {
+            var cRatio = Math.max(0, Math.min(1, (Date.now() - camp.startedAt) / camp.durationMs));
+            var cx = fromC.cx + (toC.cx - fromC.cx) * cRatio;
+            var cy = fromC.cy + (toC.cy - fromC.cy) * cRatio;
+            html +=
+              '<line x1="' + fromC.cx + '" y1="' + fromC.cy + '" x2="' + toC.cx + '" y2="' + toC.cy + '" stroke="#ef4444" stroke-width="3" stroke-dasharray="8 4"/>' +
+              '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="11" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>' +
+              '<text x="' + cx.toFixed(1) + '" y="' + (cy + 4).toFixed(1) + '" text-anchor="middle" font-size="11">⚔️</text>';
+          }
+        }
+
+        layer.innerHTML = html;
+      }
+
+      // Contrôles souris & toucher (pan + pinch-to-zoom)
+      var drag = { active: false, moved: false, startX: 0, startY: 0, origX: 0, origY: 0 };
+      var pinch = { active: false, startDist: 0, startW: MAP_W, midRatioX: 0.5, midRatioY: 0.5 };
+
+      function getTouchDistance(t1, t2) {
+        var dx = t2.clientX - t1.clientX;
+        var dy = t2.clientY - t1.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+
+      worldMap.addEventListener('touchstart', function (e) {
+        if (e.touches && e.touches.length === 2) {
+          e.preventDefault();
+          drag.active = false;
+          pinch.active = true;
+          pinch.startDist = Math.max(10, getTouchDistance(e.touches[0], e.touches[1]));
+          pinch.startW = viewBox.w;
+          var rect = worldMap.getBoundingClientRect();
+          pinch.midRatioX = ((e.touches[0].clientX + e.touches[1].clientX) * 0.5 - rect.left) / Math.max(1, rect.width);
+          pinch.midRatioY = ((e.touches[0].clientY + e.touches[1].clientY) * 0.5 - rect.top) / Math.max(1, rect.height);
+        }
+      }, { passive: false });
+
+      worldMap.addEventListener('touchmove', function (e) {
+        if (pinch.active && e.touches && e.touches.length === 2) {
+          e.preventDefault();
+          var curDist = Math.max(10, getTouchDistance(e.touches[0], e.touches[1]));
+          var scale = pinch.startDist / curDist;
+          var oldW = viewBox.w;
+          var oldH = viewBox.h;
+          viewBox.w = Math.max(280, Math.min(MAP_W, pinch.startW * scale));
+          viewBox.h = viewBox.w * (MAP_H / MAP_W);
+          viewBox.x += (oldW - viewBox.w) * pinch.midRatioX;
+          viewBox.y += (oldH - viewBox.h) * pinch.midRatioY;
+          applyViewBox();
+        }
+      }, { passive: false });
+
+      worldMap.addEventListener('touchend', function (e) {
+        if (!e.touches || e.touches.length < 2) pinch.active = false;
+      });
+
+      worldMap.addEventListener('pointerdown', function (e) {
+        if (pinch.active) return;
+        drag.active = true;
+        drag.moved = false;
+        drag.startX = e.clientX;
+        drag.startY = e.clientY;
+        drag.origX = viewBox.x;
+        drag.origY = viewBox.y;
+      });
+
+      window.addEventListener('pointermove', function (e) {
+        if (!drag.active || pinch.active) return;
+        var dx = e.clientX - drag.startX;
+        var dy = e.clientY - drag.startY;
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) drag.moved = true;
+        if (drag.moved) {
+          var rect = worldMap.getBoundingClientRect();
+          viewBox.x = drag.origX - dx * (viewBox.w / Math.max(1, rect.width));
+          viewBox.y = drag.origY - dy * (viewBox.h / Math.max(1, rect.height));
+          applyViewBox();
+        }
+      });
+
+      window.addEventListener('pointerup', function (e) {
+        if (!drag.active) return;
+        var wasMoved = drag.moved;
+        drag.active = false;
+        if (!wasMoved && !pinch.active && e.target && e.target.classList && e.target.classList.contains('country-shape')) {
+          state.selectedId = e.target.getAttribute('data-id');
+          refreshMapStyles();
+          renderMapCard();
+        }
+      });
+
+      worldMap.addEventListener('wheel', function (e) {
+        e.preventDefault();
+        zoomAtCenter(e.deltaY > 0 ? 1.15 : 0.87);
+      }, { passive: false });
+
+      document.getElementById('btn-zoom-in').addEventListener('click', function () { zoomAtCenter(0.8); });
+      document.getElementById('btn-zoom-out').addEventListener('click', function () { zoomAtCenter(1.25); });
+      document.getElementById('btn-zoom-reset').addEventListener('click', function () {
+        viewBox = { x: 0, y: 0, w: MAP_W, h: MAP_H };
+        applyViewBox();
+      });
+
+      // =========================================================================
+      // 8. CABINET DU GÉNIE & EXPÉDITIONS CHRONOMÉTRÉES
+      // =========================================================================
+      function startGeniusMission(country, missionId, targetCountryId) {
+        var cs = ensureCountryState(country);
+        if (cs.genius.activeMission) return;
+        var mDef = null;
+        for (var i = 0; i < GENIUS_MISSIONS.length; i++) {
+          if (GENIUS_MISSIONS[i].id === missionId) mDef = GENIUS_MISSIONS[i];
+        }
+        if (!mDef || cs.gold < mDef.cost) return;
+        cs.gold -= mDef.cost;
+
+        var target = getCountryById(targetCountryId) || country;
+        var devBonus = mDef.foreign && target.dev >= 4 ? 25 : 0;
+        var gain = Math.floor(mDef.minGain + Math.random() * (mDef.maxGain - mDef.minGain + 1)) + devBonus;
+
+        cs.genius.activeMission = {
+          missionId: mDef.id,
+          title: mDef.title,
+          targetId: target.id,
+          targetName: target.name,
+          startedAt: Date.now(),
+          durationMs: mDef.durationSec * 1000,
+          reward: gain
+        };
+
+        cs.genius.logs.unshift('⏳ Ton Génie est parti pour : ' + mDef.title + (mDef.foreign ? ' (' + target.name + ')' : '') + '.');
+        if (cs.genius.logs.length > 6) cs.genius.logs.length = 6;
+
+        pushCloudSave(true);
+        updateHeaderHud();
+        refreshMapStyles();
+        renderRoutesOnMap();
+        if (state.activeTab === 'country') renderCountryView();
+      }
+
+      function completeGeniusMission(country, silent) {
+        var cs = ensureCountryState(country);
+        var m = cs.genius.activeMission;
+        if (!m) return;
+        var gain = Number(m.reward) || 10;
+        cs.knowledge += gain;
+        cs.totalKnowledgeEarned += gain;
+        cs.genius.activeMission = null;
+        cs.genius.logs.unshift('✅ Mission terminée (' + (m.title || 'Expédition') + ') : +' + gain + ' 🧠 Connaissances acquises !');
+        if (cs.genius.logs.length > 6) cs.genius.logs.length = 6;
+
+        pushCloudSave(true);
+        updateHeaderHud();
+        refreshMapStyles();
+        renderRoutesOnMap();
+        if (!silent && state.activeTab === 'country') renderCountryView();
+      }
+
+      // =========================================================================
+      // 9. ATTAQUES EN JOURS RÉELS SELON DISTANCE & ANNEXION D'UN 2e PAYS
+      // =========================================================================
+      function computeMilitaryPower(country) {
+        if (!country) return { attack: 0, defense: 0, count: 0 };
+        var cs = ensureCountryState(country);
+        var allTroops = getAllTroopsForCountry(country);
+        var totalAtk = 0;
+        var totalDef = 0;
+        var count = 0;
+        for (var i = 0; i < allTroops.length; i++) {
+          var qty = Number(cs.troops[allTroops[i].id]) || 0;
+          if (qty > 0) {
+            totalAtk += qty * allTroops[i].atk;
+            totalDef += qty * (allTroops[i].def + Math.round(allTroops[i].hp * 0.25));
+            count += qty;
+          }
+        }
+        return { attack: totalAtk, defense: totalDef, count: count };
+      }
+
+      function applySoldierCasualties(country, lossRatio) {
+        if (!country || lossRatio <= 0) return;
+        var cs = ensureCountryState(country);
+        var allTroops = getAllTroopsForCountry(country);
+        for (var i = 0; i < allTroops.length; i++) {
+          var tid = allTroops[i].id;
+          var cur = Number(cs.troops[tid]) || 0;
+          if (cur > 0) {
+            cs.troops[tid] = Math.max(0, cur - Math.floor(cur * lossRatio));
+          }
+        }
+        if (getTotalSoldiers(country) < 1 && allTroops.length > 0) {
+          cs.troops[allTroops[0].id] = 1;
+        }
+      }
+
+      function launchMilitaryCampaign(fromCountry, toCountry, remoteTargetPlayer) {
+        if (!fromCountry || !toCountry) return;
+        var travelSec = calcMilitaryTravelSeconds(fromCountry, toCountry);
+        var camp = {
+          id: 'camp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+          fromId: fromCountry.id,
+          fromName: fromCountry.name,
+          toId: toCountry.id,
+          toName: toCountry.name,
+          startedAt: Date.now(),
+          durationMs: travelSec * 1000,
+          remotePlayer: remoteTargetPlayer ? {
+            id: remoteTargetPlayer.id,
+            name: remoteTargetPlayer.name,
+            defense: remoteTargetPlayer.defense,
+            gold: remoteTargetPlayer.gold
+          } : null
+        };
+        state.campaigns.push(camp);
+        state.multi.lastCombatReport = '🚀 Armée de ' + fromCountry.name + ' en marche vers ' + toCountry.name + ' (impact dans ' + formatDuration(travelSec) + ').';
+        pushCloudSave(true);
+        renderRoutesOnMap();
+        renderCampaignsPanel();
+        renderMapCard();
+      }
+
+      function resolveArrivedCampaigns(silent) {
+        var now = Date.now();
+        var remaining = [];
+        var resolvedCount = 0;
+
+        for (var i = 0; i < state.campaigns.length; i++) {
+          var camp = state.campaigns[i];
+          if (now < camp.startedAt + camp.durationMs) {
+            remaining.push(camp);
+            continue;
+          }
+
+          resolvedCount++;
+          var fromC = getCountryById(camp.fromId);
+          var toC = getCountryById(camp.toId);
+          if (!fromC || !toC) continue;
+
+          var cs = ensureCountryState(fromC);
+          var myPow = computeMilitaryPower(fromC);
+
+          if (camp.remotePlayer) {
+            var enemyDef = Math.max(10, Number(camp.remotePlayer.defense) || 50);
+            var ratio = myPow.attack / (myPow.attack + enemyDef);
+            var winPct = Math.max(5, Math.min(95, Math.round(ratio * 100)));
+            var victory = (Math.random() * 100) < winPct;
+            if (victory) {
+              var loot = Math.max(30000, Math.floor((Number(camp.remotePlayer.gold) || 0) * 0.25));
+              applySoldierCasualties(fromC, (1 - ratio) * 0.35);
+              cs.gold += loot;
+              state.multi.lastCombatReport = '🏆 VICTOIRE à ' + toC.name + ' contre ' + camp.remotePlayer.name + ' ! Butin : +' + formatFr(loot) + ' or.';
+              sendRoomInboxAndChat(camp.remotePlayer.id, { type: 'under_attack', loot: loot, defenderLossRatio: 0.35 },
+                '⚔️ ' + (state.cloud.username || 'Un commandant') + ' (' + fromC.name + ') a vaincu ' + camp.remotePlayer.name + ' à ' + toC.name + ' (+' + formatFr(loot) + ' or) !');
+            } else {
+              applySoldierCasualties(fromC, 0.35);
+              state.multi.lastCombatReport = '💥 DÉFAITE à ' + toC.name + ' face à ' + camp.remotePlayer.name + '.';
+            }
+          } else {
+            var garrison = getNeutralGarrison(toC);
+            var nRatio = myPow.attack / (myPow.attack + Math.max(10, garrison.defense));
+            var nWinPct = Math.max(8, Math.min(96, Math.round(nRatio * 100)));
+            var nVictory = (Math.random() * 100) < nWinPct;
+            if (nVictory) {
+              var nLoot = Math.max(20000, Math.floor(garrison.treasury * 0.35));
+              garrison.treasury = Math.max(50000, garrison.treasury - nLoot);
+              garrison.soldiers = Math.max(0, Math.floor(garrison.soldiers * 0.45));
+              garrison.defense = Math.max(500, Math.floor(garrison.defense * 0.45));
+              applySoldierCasualties(fromC, (1 - nRatio) * 0.25);
+              cs.gold += nLoot;
+              state.multi.lastCombatReport = '🏆 Garnison de ' + toC.name + ' enfoncée ! Butin : +' + formatFr(nLoot) + ' or (Garnison restante : ' + formatFr(garrison.soldiers) + ').';
+            } else {
+              applySoldierCasualties(fromC, 0.3);
+              state.multi.lastCombatReport = '💥 Assaut repoussé par la garnison de ' + toC.name + ' (' + formatFr(garrison.soldiers) + ' défenseurs).';
+            }
+          }
+        }
+
+        state.campaigns = remaining;
+        if (resolvedCount > 0 && !silent) {
+          pushCloudSave(true);
+          updateHeaderHud();
+          renderRoutesOnMap();
+          renderCampaignsPanel();
+          renderMapCard();
+        }
+        return resolvedCount;
+      }
+
+      function annexCountry(targetCountry) {
+        if (!targetCountry || isCountryOwned(targetCountry.id)) return;
+        var activeC = getActiveCountry();
+        if (!activeC) return;
+        var activeCs = ensureCountryState(activeC);
+        var cost = calcAnnexationCost(targetCountry, state.ownedIds.length);
+        var garrison = getNeutralGarrison(targetCountry);
+        var canAnnex = activeCs.gold >= cost && garrison.soldiers <= Math.ceil(garrison.maxSoldiers * 0.25);
+        if (!canAnnex) return;
+
+        activeCs.gold -= cost;
+        state.ownedIds.push(targetCountry.id);
+        state.activeOwnedId = targetCountry.id;
+        ensureCountryState(targetCountry);
+        state.multi.lastCombatReport = '👑 ANNEXE RÉUSSIE ! ' + targetCountry.name + ' rejoint ton Empire !';
+        pushCloudSave(true);
+        updateNavigationUI();
+        refreshMapStyles();
+        switchTab('country', targetCountry.id);
+      }
+
+      function renderCampaignsPanel() {
+        var panel = document.getElementById('campaigns-panel');
+        if (!panel) return;
+        if (state.campaigns.length === 0) {
+          panel.style.display = 'none';
+          return;
+        }
+        panel.style.display = 'block';
+        var html = '<div style="font-weight:900;font-size:15px;color:#881337;">⚔️ Offensives militaires en cours (' + state.campaigns.length + ')</div>';
+        for (var i = 0; i < state.campaigns.length; i++) {
+          var c = state.campaigns[i];
+          var remSec = Math.max(0, (c.startedAt + c.durationMs - Date.now()) / 1000);
+          html +=
+            '<div class="campaign-item">' +
+              '<div><b>' + c.fromName + ' ➔ ' + c.toName + '</b>' + (c.remotePlayer ? (' (' + c.remotePlayer.name + ')') : ' (Garnison locale)') + '</div>' +
+              '<span class="stat-pill red" data-camp-timer="' + c.id + '">⏱️ Impact dans ' + formatDuration(remSec) + '</span>' +
+            '</div>';
+        }
+        panel.innerHTML = html;
+      }
+
+      // =========================================================================
+      // 10. RENDU DE L'ONGLET 2 (GESTION DU PAYS ACTIF)
+      // =========================================================================
+      function renderCountryView() {
+        var container = document.getElementById('view-country');
+        var country = getActiveCountry();
+        if (!country) {
+          switchTab('map');
+          return;
+        }
+
+        var cs = ensureCountryState(country);
+        var maxFarms = calcFarmsForSoldiers(country.maxSoldiers);
+        var foodCap = Math.floor(cs.farms * 2.5);
+        var usedFood = getTotalSoldiers(country) * TROOP_FOOD_COST;
+        var freeFood = Math.max(0, foodCap - usedFood);
+        var goldRate = cs.mines * MINE_RATE;
+        var unlockedCount = getUnlockedTroopCount(cs.devLevel);
+        var devInfo = DEV_LEVELS[cs.devLevel] || DEV_LEVELS[3];
+
+        var devHtml = '';
+        if (cs.devLevel < 5) {
+          var req = DEV_UPGRADE_COSTS[cs.devLevel];
+          var canUpgrade = cs.gold >= req.gold && cs.knowledge >= req.knowledge;
+          var knowPct = Math.min(100, Math.round((cs.knowledge / req.knowledge) * 100));
+          devHtml =
+            '<div class="dev-upgrade-box">' +
+              '<div style="flex:1;min-width:230px;">' +
+                '<div style="font-weight:900;font-size:15px;color:#78350f;">🏛️ Développement : Niveau ' + cs.devLevel + ' / 5 (' + devInfo.label + ')</div>' +
+                '<div style="font-size:13px;color:#92400e;margin-top:3px;">Passer au <b>Niveau ' + (cs.devLevel + 1) + '</b> débloque la <b>' + (unlockedCount + 1) + 'ᵉ troupe unique</b> de ' + country.name + '.</div>' +
+                '<div class="pills-row">' +
+                  '<span class="stat-pill gold">Coût : ' + formatFr(req.gold) + ' or</span>' +
+                  '<span class="stat-pill purple">Requis : ' + formatFr(cs.knowledge) + ' / ' + formatFr(req.knowledge) + ' 🧠</span>' +
+                '</div>' +
+                '<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:' + knowPct + '%"></div></div>' +
+              '</div>' +
+              '<button type="button" class="primary-btn" id="btn-upgrade-dev"' + (canUpgrade ? '' : ' disabled') + '>Améliorer au Niv. ' + (cs.devLevel + 1) + '</button>' +
+            '</div>';
+        } else {
+          devHtml =
+            '<div class="dev-upgrade-box">' +
+              '<div>' +
+                '<div style="font-weight:900;font-size:15px;color:#78350f;">👑 Niveau Maximum Atteint : Niveau 5 / 5 (Superpuissance)</div>' +
+                '<div style="font-size:13px;color:#92400e;margin-top:3px;">Toutes les 6 troupes exclusives de ' + country.name + ' sont disponibles.</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        var remMines = Math.max(0, country.maxMines - cs.mines);
+        var maxBuyMines = Math.min(remMines, Math.floor(cs.gold / MINE_COST));
+        var remFarms = Math.max(0, maxFarms - cs.farms);
+        var maxBuyFarms = Math.min(remFarms, Math.floor(cs.gold / FARM_COST));
+
+        var missionHtml = '';
+        if (cs.genius.activeMission) {
+          var am = cs.genius.activeMission;
+          var remSec = Math.max(0, (am.startedAt + am.durationMs - Date.now()) / 1000);
+          var pct = Math.min(100, Math.max(0, Math.round(((Date.now() - am.startedAt) / am.durationMs) * 100)));
+          missionHtml =
+            '<div class="active-mission-banner">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">' +
+                '<div>' +
+                  '<div style="font-weight:900;font-size:14.5px;color:#581c87;">⏳ Mission en cours : ' + am.title + ' (' + am.targetName + ')</div>' +
+                  '<div style="font-size:12.5px;color:#6b21a8;margin-top:2px;">Récompense prévue : <b>+' + am.reward + ' 🧠 Connaissances</b></div>' +
+                '</div>' +
+                '<span class="stat-pill purple" id="genius-timer-badge" style="font-size:14px;">⏱️ ' + formatDuration(remSec) + '</span>' +
+              '</div>' +
+              '<div class="progress-bar-wrap"><div class="progress-bar-fill" id="genius-progress-fill" style="width:' + pct + '%"></div></div>' +
+            '</div>';
+        } else {
+          var foreignOptions = '';
+          for (var fc = 0; fc < COUNTRIES.length; fc++) {
+            if (COUNTRIES[fc].id !== country.id) {
+              foreignOptions += '<option value="' + COUNTRIES[fc].id + '">' + COUNTRIES[fc].name + ' (Niv. ' + COUNTRIES[fc].dev + ')</option>';
+            }
+          }
+          var cards = '';
+          for (var gm = 0; gm < GENIUS_MISSIONS.length; gm++) {
+            var m = GENIUS_MISSIONS[gm];
+            var canAffordM = cs.gold >= m.cost;
+            cards +=
+              '<div class="mission-card">' +
+                '<div>' +
+                  '<div style="font-weight:900;font-size:14px;">' + m.title + '</div>' +
+                  '<div style="font-size:12px;color:var(--mute);margin-top:3px;">' + m.desc + '</div>' +
+                '</div>' +
+                '<div class="pills-row">' +
+                  '<span class="stat-pill gold">' + (m.cost === 0 ? 'Gratuit' : formatFr(m.cost) + ' or') + '</span>' +
+                  '<span class="stat-pill">⏱️ ' + formatDuration(m.durationSec) + '</span>' +
+                  '<span class="stat-pill purple">+' + m.minGain + ' à ' + m.maxGain + ' 🧠</span>' +
+                '</div>' +
+                (m.foreign ? '<select class="multi-input" id="foreign-target-select" style="padding:6px 8px;font-size:12.5px;">' + foreignOptions + '</select>' : '') +
+                '<button type="button" class="primary-btn purple btn-start-mission" data-mid="' + m.id + '" style="padding:9px 12px;font-size:13px;"' + (canAffordM ? '' : ' disabled') + '>Envoyer le Génie</button>' +
+              '</div>';
+          }
+          missionHtml = '<div class="missions-grid">' + cards + '</div>';
+        }
+
+        var allTroops = getAllTroopsForCountry(country);
+        var troopsHtml = '';
+        for (var t = 0; t < allTroops.length; t++) {
+          var tr = allTroops[t];
+          var isDevUnlocked = t < unlockedCount;
+          var reqKnow = isDevUnlocked ? getTroopKnowledgeRequirement(unlockedCount, t) : 0;
+          var hasKnow = cs.knowledge >= reqKnow;
+          var ownedQty = Number(cs.troops[tr.id]) || 0;
+          var maxRecruit = 0;
+          if (isDevUnlocked && hasKnow) {
+            var byGold = Math.floor(cs.gold / tr.cost);
+            var byCap = Math.max(0, country.maxSoldiers - usedFood);
+            maxRecruit = Math.min(byGold, freeFood, byCap);
+          }
+
+          var lockBadge = '';
+          if (!isDevUnlocked) {
+            lockBadge = '<span class="stat-pill">🔒 Débloqué au Niveau ' + (t - 1) + '</span>';
+          } else if (reqKnow > 0) {
+            lockBadge = hasKnow
+              ? '<span class="stat-pill green">✓ ' + formatFr(reqKnow) + ' 🧠 atteint</span>'
+              : '<span class="stat-pill purple">🔒 Requis : ' + formatFr(cs.knowledge) + ' / ' + formatFr(reqKnow) + ' 🧠</span>';
+          }
+
+          troopsHtml +=
+            '<div class="troop-card' + ((!isDevUnlocked || !hasKnow) ? ' locked' : '') + '">' +
+              '<div class="troop-top">' +
+                '<div class="troop-art">' + getTroopSvg(tr.art) + '</div>' +
+                '<div>' +
+                  '<div style="font-weight:900;font-size:15px;">' + tr.name + '</div>' +
+                  '<div style="font-size:12.5px;color:var(--mute);">En service : <b>' + formatFr(ownedQty) + '</b></div>' +
+                  '<div class="pills-row">' +
+                    '<span class="stat-pill gold">🪙 ' + formatFr(tr.cost) + ' or</span>' +
+                    '<span class="stat-pill green">🌾 1 nourriture</span>' +
+                    lockBadge +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="pills-row">' +
+                '<span class="stat-pill blue">⚔️ ATQ ' + tr.atk + '</span>' +
+                '<span class="stat-pill">🛡️ DEF ' + tr.def + '</span>' +
+                '<span class="stat-pill">❤️ PV ' + tr.hp + '</span>' +
+              '</div>' +
+              '<div class="batch-row">' +
+                '<button type="button" class="batch-btn btn-buy-troop" data-tid="' + tr.id + '" data-qty="1"' + (maxRecruit >= 1 ? '' : ' disabled') + '>+1</button>' +
+                '<button type="button" class="batch-btn btn-buy-troop" data-tid="' + tr.id + '" data-qty="10"' + (maxRecruit >= 10 ? '' : ' disabled') + '>+10</button>' +
+                '<button type="button" class="batch-btn btn-buy-troop" data-tid="' + tr.id + '" data-qty="100"' + (maxRecruit >= 100 ? '' : ' disabled') + '>+100</button>' +
+                '<button type="button" class="batch-btn btn-buy-troop" data-tid="' + tr.id + '" data-qty="max"' + (maxRecruit >= 1 ? '' : ' disabled') + '>Max (' + formatFr(maxRecruit) + ')</button>' +
+              '</div>' +
+            '</div>';
+        }
+
+        container.innerHTML =
+          '<div class="country-panel">' +
+            '<div class="country-header">' +
+              '<div class="country-title-block">' +
+                getFlagSvg(country.id, 'flag-svg-lg') +
+                '<div>' +
+                  '<h1>' + country.name + '</h1>' +
+                  '<div style="font-size:13px;color:var(--mute);">' + country.region + ' · Niveau ' + cs.devLevel + '/5 (' + devInfo.label + ')</div>' +
+                '</div>' +
+              '</div>' +
+              '<button type="button" class="primary-btn secondary" id="btn-back-map" style="padding:9px 14px;font-size:13px;">🌍 Voir la carte</button>' +
+            '</div>' +
+
+            '<div class="kpi-grid">' +
+              '<div class="kpi-card">' +
+                '<div class="kpi-label">Trésorerie de ' + country.name + '</div>' +
+                '<div class="kpi-value" id="country-gold-val">🪙 ' + formatFr(cs.gold) + ' or</div>' +
+                '<div class="kpi-sub" style="color:#16a34a;font-weight:700;">+' + formatFr(goldRate) + ' or / seconde</div>' +
+              '</div>' +
+              '<div class="kpi-card">' +
+                '<div class="kpi-label">Mines d’or</div>' +
+                '<div class="kpi-value">⛏️ ' + formatFr(cs.mines) + ' / ' + formatFr(country.maxMines) + '</div>' +
+                '<div class="kpi-sub">100 000 or / mine (+2 or/s)</div>' +
+              '</div>' +
+              '<div class="kpi-card">' +
+                '<div class="kpi-label">Fermes & Rations</div>' +
+                '<div class="kpi-value">🌾 ' + formatFr(cs.farms) + ' / ' + formatFr(maxFarms) + '</div>' +
+                '<div class="kpi-sub">Nourrit ' + formatFr(foodCap) + ' soldats (1 ferme = 2,5)</div>' +
+              '</div>' +
+              '<div class="kpi-card">' +
+                '<div class="kpi-label">Armée & Connaissances</div>' +
+                '<div class="kpi-value">⚔️ ' + formatFr(usedFood) + ' / ' + formatFr(country.maxSoldiers) + '</div>' +
+                '<div class="kpi-sub">🧠 ' + formatFr(cs.knowledge) + ' Connaissances</div>' +
+              '</div>' +
+            '</div>' +
+
+            '<div style="margin-top:14px;">' + devHtml + '</div>' +
+          '</div>' +
+
+          '<div class="country-panel">' +
+            '<h2 class="section-heading">🏗️ Infrastructures économiques</h2>' +
+            '<div class="infra-grid">' +
+              '<div class="infra-card">' +
+                '<div>' +
+                  '<div style="font-weight:900;font-size:15px;">⛏️ Construire des Mines d’or</div>' +
+                  '<div style="font-size:12.5px;color:var(--mute);margin-top:3px;">Coût : <b>100 000 or</b> · Production : <b>+2 or/s</b> par mine.</div>' +
+                '</div>' +
+                '<div class="batch-row">' +
+                  '<button type="button" class="batch-btn btn-buy-mine" data-qty="1"' + (maxBuyMines >= 1 ? '' : ' disabled') + '>+1</button>' +
+                  '<button type="button" class="batch-btn btn-buy-mine" data-qty="10"' + (maxBuyMines >= 10 ? '' : ' disabled') + '>+10</button>' +
+                  '<button type="button" class="batch-btn btn-buy-mine" data-qty="100"' + (maxBuyMines >= 100 ? '' : ' disabled') + '>+100</button>' +
+                  '<button type="button" class="batch-btn btn-buy-mine" data-qty="max"' + (maxBuyMines >= 1 ? '' : ' disabled') + '>Max (' + formatFr(maxBuyMines) + ')</button>' +
+                '</div>' +
+              '</div>' +
+              '<div class="infra-card">' +
+                '<div>' +
+                  '<div style="font-weight:900;font-size:15px;">🌾 Construire des Fermes</div>' +
+                  '<div style="font-size:12.5px;color:var(--mute);margin-top:3px;">Coût : <b>80 000 or</b> · Capacité : <b>+2,5 soldats nourris</b> par ferme.</div>' +
+                '</div>' +
+                '<div class="batch-row">' +
+                  '<button type="button" class="batch-btn btn-buy-farm" data-qty="1"' + (maxBuyFarms >= 1 ? '' : ' disabled') + '>+1</button>' +
+                  '<button type="button" class="batch-btn btn-buy-farm" data-qty="10"' + (maxBuyFarms >= 10 ? '' : ' disabled') + '>+10</button>' +
+                  '<button type="button" class="batch-btn btn-buy-farm" data-qty="100"' + (maxBuyFarms >= 100 ? '' : ' disabled') + '>+100</button>' +
+                  '<button type="button" class="batch-btn btn-buy-farm" data-qty="max"' + (maxBuyFarms >= 1 ? '' : ' disabled') + '>Max (' + formatFr(maxBuyFarms) + ')</button>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+
+          '<div class="country-panel">' +
+            '<h2 class="section-heading"><span>🧠 Cabinet du Génie & Recherches</span><span class="stat-pill purple">🧠 ' + formatFr(cs.knowledge) + ' Connaissances</span></h2>' +
+            '<div class="genius-header">' +
+              getGeniusSvg() +
+              '<div style="flex:1;min-width:220px;">' +
+                '<div style="font-weight:900;font-size:15px;color:#4c1d95;">Génie Royal de ' + country.name + '</div>' +
+                '<div style="font-size:12.5px;color:#6b21a8;margin-top:2px;">Envoie-le visiter, étudier ou voyager à l’étranger pour débloquer les troupes avancées et monter jusqu’au Niveau 5.</div>' +
+              '</div>' +
+            '</div>' +
+            missionHtml +
+            '<div class="genius-log"><b>Journal des découvertes :</b><br>' + cs.genius.logs.join('<br>') + '</div>' +
+          '</div>' +
+
+          '<div class="country-panel">' +
+            '<h2 class="section-heading"><span>⚔️ Troupes exclusives de ' + country.name + '</span><span class="stat-pill green">Rations libres : ' + formatFr(freeFood) + '</span></h2>' +
+            '<div class="troops-grid">' + troopsHtml + '</div>' +
+          '</div>';
+
+        document.getElementById('btn-back-map').addEventListener('click', function () {
+          switchTab('map');
+        });
+
+        var upgBtn = document.getElementById('btn-upgrade-dev');
+        if (upgBtn) {
+          upgBtn.addEventListener('click', function () {
+            if (cs.devLevel >= 5) return;
+            var r = DEV_UPGRADE_COSTS[cs.devLevel];
+            if (cs.gold >= r.gold && cs.knowledge >= r.knowledge) {
+              cs.gold -= r.gold;
+              cs.devLevel += 1;
+              pushCloudSave(true);
+              updateHeaderHud();
+              renderCountryView();
+            }
+          });
+        }
+
+        var mineBtns = container.querySelectorAll('.btn-buy-mine');
+        for (var mb = 0; mb < mineBtns.length; mb++) {
+          mineBtns[mb].addEventListener('click', function () {
+            var q = this.getAttribute('data-qty');
+            var avail = Math.min(country.maxMines - cs.mines, Math.floor(cs.gold / MINE_COST));
+            var count = q === 'max' ? avail : Math.min(avail, Number(q) || 0);
+            if (count > 0) {
+              cs.gold -= count * MINE_COST;
+              cs.mines += count;
+              pushCloudSave(true);
+              updateHeaderHud();
+              renderCountryView();
+            }
+          });
+        }
+
+        var farmBtns = container.querySelectorAll('.btn-buy-farm');
+        for (var fb = 0; fb < farmBtns.length; fb++) {
+          farmBtns[fb].addEventListener('click', function () {
+            var q = this.getAttribute('data-qty');
+            var avail = Math.min(maxFarms - cs.farms, Math.floor(cs.gold / FARM_COST));
+            var count = q === 'max' ? avail : Math.min(avail, Number(q) || 0);
+            if (count > 0) {
+              cs.gold -= count * FARM_COST;
+              cs.farms += count;
+              pushCloudSave(true);
+              updateHeaderHud();
+              renderCountryView();
+            }
+          });
+        }
+
+        var missionBtns = container.querySelectorAll('.btn-start-mission');
+        for (var msb = 0; msb < missionBtns.length; msb++) {
+          missionBtns[msb].addEventListener('click', function () {
+            var mid = this.getAttribute('data-mid');
+            var sel = document.getElementById('foreign-target-select');
+            var targetId = sel ? sel.value : country.id;
+            startGeniusMission(country, mid, targetId);
+          });
+        }
+
+        var troopBtns = container.querySelectorAll('.btn-buy-troop');
+        for (var tb = 0; tb < troopBtns.length; tb++) {
+          troopBtns[tb].addEventListener('click', function () {
+            var tid = this.getAttribute('data-tid');
+            var q = this.getAttribute('data-qty');
+            var trObj = null;
+            for (var x = 0; x < allTroops.length; x++) {
+              if (allTroops[x].id === tid) trObj = allTroops[x];
+            }
+            if (!trObj) return;
+            var curFoodCap = Math.floor(cs.farms * 2.5);
+            var curUsed = getTotalSoldiers(country);
+            var curFree = Math.max(0, curFoodCap - curUsed);
+            var curCapRem = Math.max(0, country.maxSoldiers - curUsed);
+            var maxCan = Math.min(Math.floor(cs.gold / trObj.cost), curFree, curCapRem);
+            var count = q === 'max' ? maxCan : Math.min(maxCan, Number(q) || 0);
+            if (count > 0) {
+              cs.gold -= count * trObj.cost;
+              cs.troops[tid] = (Number(cs.troops[tid]) || 0) + count;
+              pushCloudSave(true);
+              updateHeaderHud();
+              renderCountryView();
+            }
+          });
+        }
+      }
+
+      // =========================================================================
+      // 11. MULTIJOUEUR EN LIGNE TEMPS RÉEL (FIRESTORE)
+      // =========================================================================
+      function generateRoomCode() {
+        var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        var code = 'GP';
+        for (var i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+        return code;
+      }
+
+      function getRemoteCountryOwners() {
+        var map = {};
+        if (!state.multi.connected) return map;
+        var players = state.multi.players || {};
+        for (var pid in players) {
+          if (Object.prototype.hasOwnProperty.call(players, pid) && pid !== state.multi.playerId) {
+            var p = players[pid];
+            if (p && Array.isArray(p.ownedIds)) {
+              for (var i = 0; i < p.ownedIds.length; i++) map[p.ownedIds[i]] = p;
+            } else if (p && p.countryId) {
+              map[p.countryId] = p;
+            }
+          }
+        }
+        return map;
+      }
+
+      function buildLocalPlayerPayload() {
+        var activeC = getActiveCountry();
+        var power = activeC ? computeMilitaryPower(activeC) : { attack: 0, defense: 0, count: 0 };
+        var totals = getEmpireTotals();
+        return {
+          id: state.multi.playerId,
+          name: state.cloud.username || 'Commandant',
+          countryId: activeC ? activeC.id : null,
+          countryName: activeC ? activeC.name : 'Aucun pays',
+          ownedIds: state.ownedIds,
+          devLevel: activeC ? ensureCountryState(activeC).devLevel : 1,
+          knowledge: Math.floor(totals.knowledge),
+          gold: Math.floor(totals.gold),
+          soldiers: power.count,
+          attack: power.attack,
+          defense: power.defense,
+          updatedAt: Date.now()
+        };
+      }
+
+      function connectToMultiplayerRoom(code) {
+        var cleanCode = (code || '').trim().toUpperCase();
+        if (!cleanCode) return;
+        state.multi.roomCode = cleanCode;
+        state.multi.connected = true;
+        pushCloudSave(false);
+
+        if (roomUnsub) { try { roomUnsub(); } catch (e) {} roomUnsub = null; }
+        if (chatUnsub) { try { chatUnsub(); } catch (e) {} chatUnsub = null; }
+
+        if (fbDb && fbUser) {
+          var playersCol = collection(fbDb, 'artifacts', appId, 'public', 'data', 'room_' + cleanCode + '_players');
+          roomUnsub = onSnapshot(playersCol, function (snap) {
+            var map = {};
+            snap.forEach(function (d) {
+              map[d.id] = d.data();
+            });
+            state.multi.players = map;
+            refreshMapStyles();
+            renderMapCard();
+            if (state.multi.open) renderMultiPanel();
+          }, function () {});
+
+          var chatCol = collection(fbDb, 'artifacts', appId, 'public', 'data', 'room_' + cleanCode + '_chat');
+          chatUnsub = onSnapshot(chatCol, function (snap) {
+            var list = [];
+            snap.forEach(function (d) {
+              list.push(d.data());
+            });
+            list.sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
+            state.multi.chat = list.slice(-25);
+            if (state.multi.open) renderMultiPanel();
+          }, function () {});
+
+          syncMultiplayerPresence();
+        }
+        renderMultiPanel();
+      }
+
+      function syncMultiplayerPresence() {
+        if (!state.multi.connected || !state.multi.roomCode || !fbDb || !fbUser) return;
+        var cleanCode = state.multi.roomCode;
+        var myDoc = doc(fbDb, 'artifacts', appId, 'public', 'data', 'room_' + cleanCode + '_players', state.multi.playerId);
+        setDoc(myDoc, buildLocalPlayerPayload()).catch(function () {});
+
+        var inboxDoc = doc(fbDb, 'artifacts', appId, 'public', 'data', 'room_' + cleanCode + '_inbox', state.multi.playerId);
+        getDoc(inboxDoc).then(function (snap) {
+          if (!snap.exists()) return;
+          var data = snap.data();
+          var events = Array.isArray(data.events) ? data.events : [];
+          if (events.length > 0 && state.ownedIds.length > 0) {
+            var activeC = getActiveCountry();
+            var cs = ensureCountryState(activeC);
+            for (var i = 0; i < events.length; i++) {
+              var ev = events[i];
+              if (ev.type === 'gift_gold') cs.gold += Number(ev.amount) || 0;
+              if (ev.type === 'genius_visit') {
+                cs.knowledge += Number(ev.bonus) || 15;
+                cs.totalKnowledgeEarned += Number(ev.bonus) || 15;
+              }
+              if (ev.type === 'under_attack') {
+                var loot = Math.min(Math.floor(cs.gold * 0.25), Number(ev.loot) || 0);
+                cs.gold = Math.max(0, cs.gold - loot);
+                applySoldierCasualties(activeC, ev.defenderLossRatio || 0.25);
+              }
+            }
+            deleteDoc(inboxDoc).catch(function () {});
+            pushCloudSave(true);
+            updateHeaderHud();
+          }
+        }).catch(function () {});
+      }
+
+      function sendRoomInboxAndChat(targetPlayerId, eventObj, chatText) {
+        if (!state.multi.connected || !state.multi.roomCode || !fbDb || !fbUser) return;
+        var cleanCode = state.multi.roomCode;
+        if (targetPlayerId && eventObj) {
+          var inboxDoc = doc(fbDb, 'artifacts', appId, 'public', 'data', 'room_' + cleanCode + '_inbox', targetPlayerId);
+          getDoc(inboxDoc).then(function (snap) {
+            var existing = snap.exists() && Array.isArray(snap.data().events) ? snap.data().events : [];
+            existing.push(eventObj);
+            setDoc(inboxDoc, { events: existing }).catch(function () {});
+          }).catch(function () {});
+        }
+        if (chatText) {
+          var chatCol = collection(fbDb, 'artifacts', appId, 'public', 'data', 'room_' + cleanCode + '_chat');
+          addDoc(chatCol, { sender: 'Système', text: chatText, isEvent: true, ts: Date.now() }).catch(function () {});
+        }
+      }
+
+      function sendChatMessage(text) {
+        var clean = (text || '').trim();
+        if (!clean || !state.multi.connected || !fbDb || !fbUser) return;
+        var chatCol = collection(fbDb, 'artifacts', appId, 'public', 'data', 'room_' + state.multi.roomCode + '_chat');
+        addDoc(chatCol, {
+          sender: state.cloud.username || 'Commandant',
+          text: clean.slice(0, 180),
+          isEvent: false,
+          ts: Date.now()
+        }).catch(function () {});
+      }
+
+      function sendGoldGiftToPlayer(targetPlayer, amount) {
+        var activeC = getActiveCountry();
+        if (!activeC || !targetPlayer) return;
+        var cs = ensureCountryState(activeC);
+        if (cs.gold < amount) return;
+        cs.gold -= amount;
+        sendRoomInboxAndChat(targetPlayer.id, { type: 'gift_gold', amount: amount },
+          '🎁 ' + (state.cloud.username || 'Un allié') + ' a envoyé ' + formatFr(amount) + ' or à ' + targetPlayer.name + ' !');
+        pushCloudSave(true);
+        updateHeaderHud();
+        renderMapCard();
+      }
+
+      function sendGeniusToFriendCountry(targetPlayer) {
+        var activeC = getActiveCountry();
+        if (!activeC || !targetPlayer || !targetPlayer.countryId) return;
+        var cs = ensureCountryState(activeC);
+        if (cs.genius.activeMission || cs.gold < 150000) return;
+        var targetCountry = getCountryById(targetPlayer.countryId);
+        if (!targetCountry) return;
+
+        cs.gold -= 150000;
+        var reward = 45 + (Number(targetPlayer.devLevel) || 1) * 12;
+        cs.genius.activeMission = {
+          missionId: 'foreign_voyage',
+          title: 'Visite chez ' + targetPlayer.name,
+          targetId: targetCountry.id,
+          targetName: targetCountry.name + ' (' + targetPlayer.name + ')',
+          startedAt: Date.now(),
+          durationMs: 180 * 1000,
+          reward: reward
+        };
+        sendRoomInboxAndChat(targetPlayer.id, { type: 'genius_visit', bonus: 15 },
+          '🧠 Le Génie de ' + (state.cloud.username || 'Un allié') + ' rend visite à ' + targetPlayer.name + ' (' + targetCountry.name + ') !');
+        pushCloudSave(true);
+        updateHeaderHud();
+        refreshMapStyles();
+        renderRoutesOnMap();
+        renderMapCard();
+      }
+
+      function renderMultiPanel() {
+        var panel = document.getElementById('multi-panel');
+        var btnLabel = document.getElementById('multi-btn-label');
+        var btnToggle = document.getElementById('btn-multi-toggle');
+        if (!panel) return;
+
+        if (btnToggle && btnLabel) {
+          btnToggle.classList.toggle('multi-active', state.multi.connected);
+          btnLabel.textContent = state.multi.connected ? ('Salon ' + state.multi.roomCode) : 'Multijoueur';
+        }
+
+        if (!state.multi.open) {
+          panel.style.display = 'none';
+          return;
+        }
+        panel.style.display = 'block';
+
+        if (!state.multi.connected) {
+          panel.innerHTML =
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
+              '<div style="font-weight:900;font-size:16px;">🌐 Jouer en ligne avec tes potes</div>' +
+              '<button type="button" class="modal-close" id="close-multi-panel">✕</button>' +
+            '</div>' +
+            '<p style="margin:4px 0 0;font-size:13px;color:var(--mute);">Crée un salon privé en ligne pour obtenir un code à partager sur WhatsApp/Discord, ou rejoins la partie d’un pote.</p>' +
+            '<div class="multi-grid">' +
+              '<div class="multi-box">' +
+                '<div style="font-weight:800;font-size:13.5px;">1. Créer un nouveau salon</div>' +
+                '<p style="margin:0;font-size:12.5px;color:var(--mute);">Génère un code court (ex : GP48K2) pour synchroniser la carte avec tes potes.</p>' +
+                '<button type="button" class="primary-btn" id="btn-create-room">Créer un salon privé</button>' +
+              '</div>' +
+              '<div class="multi-box">' +
+                '<div style="font-weight:800;font-size:13.5px;">2. Rejoindre le salon d’un pote</div>' +
+                '<input type="text" class="multi-input" id="multi-join-code" maxlength="8" placeholder="Ex : GP48K2" style="text-transform:uppercase;" />' +
+                '<button type="button" class="primary-btn secondary" id="btn-join-room">Rejoindre la partie</button>' +
+              '</div>' +
+            '</div>';
+
+          document.getElementById('close-multi-panel').addEventListener('click', function () {
+            state.multi.open = false;
+            renderMultiPanel();
+          });
+          document.getElementById('btn-create-room').addEventListener('click', function () {
+            connectToMultiplayerRoom(generateRoomCode());
+          });
+          document.getElementById('btn-join-room').addEventListener('click', function () {
+            var codeVal = (document.getElementById('multi-join-code').value || '').trim().toUpperCase();
+            if (codeVal) connectToMultiplayerRoom(codeVal);
+          });
+          return;
+        }
+
+        var playersList = Object.values(state.multi.players || {});
+        if (playersList.length === 0) playersList.push(buildLocalPlayerPayload());
+        var playersHtml = '';
+        for (var p = 0; p < playersList.length; p++) {
+          var pl = playersList[p];
+          var isMe = pl.id === state.multi.playerId;
+          playersHtml +=
+            '<div class="player-row">' +
+              '<div><b>' + (pl.name || 'Joueur') + (isMe ? ' (Toi)' : '') + '</b> · ' + (pl.countryName || 'Sans pays') + ' (Niv. ' + (pl.devLevel || 1) + ')</div>' +
+              '<span class="stat-pill blue">⚔️ ' + formatFr(pl.soldiers || 0) + ' · 🧠 ' + formatFr(pl.knowledge || 0) + '</span>' +
+            '</div>';
+        }
+
+        var chatHtml = '';
+        var msgs = state.multi.chat || [];
+        if (msgs.length === 0) {
+          chatHtml = '<div style="color:var(--mute);font-size:12px;">Aucun message pour le moment.</div>';
+        } else {
+          for (var m = 0; m < msgs.length; m++) {
+            chatHtml += '<div class="chat-msg' + (msgs[m].isEvent ? ' event' : '') + '"><b>' + msgs[m].sender + ' :</b> ' + msgs[m].text + '</div>';
+          }
+        }
+
+        panel.innerHTML =
+          '<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;">' +
+            '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+              '<span style="font-weight:900;font-size:15.5px;">🌐 Salon en ligne</span>' +
+              '<span class="room-code-badge">' + state.multi.roomCode + '</span>' +
+              '<button type="button" class="stat-pill" id="btn-copy-room-code" style="cursor:pointer;">📋 Copier le code</button>' +
+            '</div>' +
+            '<div style="display:flex;gap:6px;">' +
+              '<button type="button" class="primary-btn danger" id="btn-leave-room" style="padding:6px 10px;font-size:12px;">Quitter</button>' +
+              '<button type="button" class="modal-close" id="close-multi-panel">✕</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="multi-grid">' +
+            '<div class="multi-box">' +
+              '<div style="font-weight:800;font-size:13.5px;">👥 Joueurs dans le salon (' + playersList.length + ')</div>' +
+              '<div style="display:flex;flex-direction:column;gap:6px;">' + playersHtml + '</div>' +
+            '</div>' +
+            '<div class="multi-box">' +
+              '<div style="font-weight:800;font-size:13.5px;">💬 Tchat & Journal des batailles</div>' +
+              '<div class="chat-feed" id="multi-chat-feed">' + chatHtml + '</div>' +
+              '<div style="display:flex;gap:6px;">' +
+                '<input type="text" class="multi-input" id="multi-chat-input" maxlength="180" placeholder="Écrire un message..." />' +
+                '<button type="button" class="primary-btn secondary" id="btn-send-chat" style="padding:8px 14px;font-size:13px;">Envoyer</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+
+        var chatFeed = document.getElementById('multi-chat-feed');
+        if (chatFeed) chatFeed.scrollTop = chatFeed.scrollHeight;
+
+        document.getElementById('close-multi-panel').addEventListener('click', function () {
+          state.multi.open = false;
+          renderMultiPanel();
+        });
+        document.getElementById('btn-copy-room-code').addEventListener('click', function () {
+          var tmp = document.createElement('input');
+          tmp.value = state.multi.roomCode;
+          document.body.appendChild(tmp);
+          tmp.select();
+          try { document.execCommand('copy'); } catch (e) {}
+          document.body.removeChild(tmp);
+          this.textContent = '✓ Copié';
+        });
+        document.getElementById('btn-leave-room').addEventListener('click', function () {
+          if (roomUnsub) { try { roomUnsub(); } catch (e) {} roomUnsub = null; }
+          if (chatUnsub) { try { chatUnsub(); } catch (e) {} chatUnsub = null; }
+          state.multi.connected = false;
+          state.multi.roomCode = '';
+          state.multi.players = {};
+          pushCloudSave(false);
+          refreshMapStyles();
+          renderMapCard();
+          renderMultiPanel();
+        });
+        document.getElementById('btn-send-chat').addEventListener('click', function () {
+          var inp = document.getElementById('multi-chat-input');
+          if (inp && inp.value.trim()) {
+            sendChatMessage(inp.value);
+            inp.value = '';
+          }
+        });
+        document.getElementById('multi-chat-input').addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            var val = this.value;
+            this.value = '';
+            sendChatMessage(val);
+          }
+        });
+      }
+
+      document.getElementById('btn-multi-toggle').addEventListener('click', function () {
+        state.multi.open = !state.multi.open;
+        renderMultiPanel();
+      });
+
+      // =========================================================================
+      // 12. NAVIGATION MULTI-PAYS, FICHE SOUS LA CARTE & MODALE CLOUD
+      // =========================================================================
+      var tabMapBtn = document.getElementById('tab-map');
+      var ownedTabsContainer = document.getElementById('owned-tabs-container');
+      var viewMap = document.getElementById('view-map');
+      var viewCountry = document.getElementById('view-country');
+
+      function updateNavigationUI() {
+        ownedTabsContainer.innerHTML = '';
+        for (var i = 0; i < state.ownedIds.length; i++) {
+          var oc = getCountryById(state.ownedIds[i]);
+          if (!oc) continue;
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'tab-btn' + (state.activeTab === 'country' && state.activeOwnedId === oc.id ? ' active' : '');
+          btn.textContent = '🏳️ ' + oc.name;
+          btn.setAttribute('data-cid', oc.id);
+          btn.addEventListener('click', function () {
+            switchTab('country', this.getAttribute('data-cid'));
+          });
+          ownedTabsContainer.appendChild(btn);
+        }
+
+        if (state.ownedIds.length === 0) state.activeTab = 'map';
+        tabMapBtn.classList.toggle('active', state.activeTab === 'map');
+        viewMap.style.display = state.activeTab === 'map' ? 'block' : 'none';
+        viewCountry.style.display = state.activeTab === 'country' ? 'block' : 'none';
+        updateHeaderHud();
+      }
+
+      function switchTab(tabName, countryId) {
+        if (tabName === 'country') {
+          if (state.ownedIds.length === 0) return;
+          if (countryId && isCountryOwned(countryId)) state.activeOwnedId = countryId;
+          else if (!state.activeOwnedId || !isCountryOwned(state.activeOwnedId)) state.activeOwnedId = state.ownedIds[0];
+        }
+        state.activeTab = tabName;
+        updateNavigationUI();
+        if (tabName === 'country') renderCountryView();
+        else renderMapCard();
+        pushCloudSave(false);
+      }
+
+      tabMapBtn.addEventListener('click', function () { switchTab('map'); });
+
+      function updateHeaderHud() {
+        var goldPill = document.getElementById('hud-gold-pill');
+        var knowPill = document.getElementById('hud-know-pill');
+        if (state.ownedIds.length === 0) {
+          goldPill.style.display = 'none';
+          knowPill.style.display = 'none';
+          return;
+        }
+        var totals = getEmpireTotals();
+        goldPill.style.display = 'inline-flex';
+        knowPill.style.display = 'inline-flex';
+        document.getElementById('hud-gold').textContent = formatFr(totals.gold);
+        document.getElementById('hud-rate').textContent = '+' + formatFr(totals.rate) + ' or/s';
+        document.getElementById('hud-know').textContent = formatFr(totals.knowledge);
+
+        var activeC = getActiveCountry();
+        var countryGoldEl = document.getElementById('country-gold-val');
+        if (activeC && countryGoldEl) {
+          countryGoldEl.textContent = '🪙 ' + formatFr(ensureCountryState(activeC).gold) + ' or';
+        }
+      }
+
+      var cardFlag = document.getElementById('card-flag');
+      var cardTitle = document.getElementById('card-title');
+      var cardSub = document.getElementById('card-sub');
+      var cardPills = document.getElementById('card-pills');
+      var cardAction = document.getElementById('card-action');
+
+      function renderMapCard() {
+        var current = getCountryById(state.selectedId);
+        var existingCombatBox = document.getElementById('combat-sim-container');
+        if (existingCombatBox) existingCombatBox.remove();
+
+        if (!current) {
+          cardFlag.innerHTML = '';
+          cardTitle.textContent = 'Choisis ton pays de départ';
+          cardSub.textContent = 'Touche un pays sur la carte : il démarre gratuitement avec 2 mines d’or (+4 or/s), 1 ferme, 1 troupe et ton Génie.';
+          cardPills.style.display = 'none';
+          cardAction.style.display = 'none';
+          return;
+        }
+
+        var maxFarms = calcFarmsForSoldiers(current.maxSoldiers);
+        var devInfo = DEV_LEVELS[current.dev] || DEV_LEVELS[3];
+        var remoteOwners = getRemoteCountryOwners();
+        var remoteOwner = remoteOwners[current.id];
+
+        cardFlag.innerHTML = getFlagSvg(current.id, 'flag-svg-sm');
+        cardTitle.textContent = current.name + (remoteOwner ? (' — Contrôlé par ' + remoteOwner.name) : '');
+        cardSub.textContent = remoteOwner
+          ? ('Joueur en ligne : ' + remoteOwner.name + ' · Niv. ' + (remoteOwner.devLevel || 1) + ' · ' + formatFr(remoteOwner.soldiers || 0) + ' soldats')
+          : (current.region + ' · Développement initial : Niveau ' + current.dev + '/5 (' + devInfo.label + ')');
+
+        cardPills.style.display = 'flex';
+        cardPills.innerHTML =
+          '<span class="stat-pill">🏛️ Niv. ' + (remoteOwner ? remoteOwner.devLevel : current.dev) + '/5 · ' + devInfo.count + ' troupes uniques</span>' +
+          '<span class="stat-pill gold">⛏️ Mines max : ' + formatFr(current.maxMines) + '</span>' +
+          '<span class="stat-pill green">🌾 Fermes max : ' + formatFr(maxFarms) + '</span>' +
+          '<span class="stat-pill blue">⚔️ Soldats max : ' + formatFr(current.maxSoldiers) + '</span>';
+
+        if (state.ownedIds.length === 0) {
+          cardAction.style.display = 'inline-block';
+          if (remoteOwner) {
+            cardAction.textContent = 'Déjà pris par ' + remoteOwner.name;
+            cardAction.className = 'primary-btn secondary';
+            cardAction.disabled = true;
+          } else {
+            cardAction.textContent = 'Choisir gratuitement';
+            cardAction.className = 'primary-btn';
+            cardAction.disabled = false;
+          }
+          return;
+        }
+
+        if (isCountryOwned(current.id)) {
+          cardAction.style.display = 'inline-block';
+          cardAction.textContent = 'Ouvrir ' + current.name + ' →';
+          cardAction.className = 'primary-btn secondary';
+          cardAction.disabled = false;
+          return;
+        }
+
+        // Pays étranger (joueur en ligne ou neutre) -> Attaque avec temps réel en jours + Annexion
+        cardAction.style.display = 'none';
+        var activeC = getActiveCountry();
+        var activeCs = ensureCountryState(activeC);
+        var myPow = computeMilitaryPower(activeC);
+        var travelSec = calcMilitaryTravelSeconds(activeC, current);
+
+        var box = document.createElement('div');
+        box.id = 'combat-sim-container';
+        box.className = 'combat-preview-box';
+
+        if (remoteOwner) {
+          var enemyDef = Math.max(10, Number(remoteOwner.defense) || 50);
+          var winPct = Math.max(5, Math.min(95, Math.round((myPow.attack / (myPow.attack + enemyDef)) * 100)));
+          box.innerHTML =
+            '<div style="font-weight:900;font-size:14.5px;color:#7f1d1d;">⚔️ Offensive depuis ' + activeC.name + ' vers ' + remoteOwner.name + ' (' + current.name + ')</div>' +
+            '<div class="pills-row" style="margin-bottom:10px;">' +
+              '<span class="stat-pill blue">Ton attaque : ' + formatFr(myPow.attack) + '</span>' +
+              '<span class="stat-pill">Défense ennemie : ' + formatFr(enemyDef) + '</span>' +
+              '<span class="stat-pill red">⏱️ Trajet réel : ' + formatDuration(travelSec) + '</span>' +
+              '<span class="stat-pill green">Chances : ' + winPct + ' %</span>' +
+            '</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
+              '<button type="button" class="primary-btn danger" id="btn-launch-attack" style="padding:10px 14px;font-size:13px;">⚔️ Lancer l’attaque (' + formatDuration(travelSec) + ')</button>' +
+              '<button type="button" class="primary-btn" id="btn-gift-player" style="padding:10px 14px;font-size:13px;"' + (activeCs.gold >= 100000 ? '' : ' disabled') + '>🎁 Donner 100 000 or</button>' +
+              '<button type="button" class="primary-btn purple" id="btn-genius-friend" style="padding:10px 14px;font-size:13px;"' + (!activeCs.genius.activeMission && activeCs.gold >= 150000 ? '' : ' disabled') + '>🧠 Envoyer Génie (150 000 or)</button>' +
+            '</div>' +
+            (state.multi.lastCombatReport ? '<div style="margin-top:8px;font-size:13px;font-weight:800;color:#0f172a;">' + state.multi.lastCombatReport + '</div>' : '');
+
+          document.getElementById('map-card').appendChild(box);
+          document.getElementById('btn-launch-attack').addEventListener('click', function () { launchMilitaryCampaign(activeC, current, remoteOwner); });
+          document.getElementById('btn-gift-player').addEventListener('click', function () { sendGoldGiftToPlayer(remoteOwner, 100000); });
+          document.getElementById('btn-genius-friend').addEventListener('click', function () { sendGeniusToFriendCountry(remoteOwner); });
+        } else {
+          var garrison = getNeutralGarrison(current);
+          var nWinPct = Math.max(8, Math.min(96, Math.round((myPow.attack / (myPow.attack + Math.max(10, garrison.defense))) * 100)));
+          var annexCost = calcAnnexationCost(current, state.ownedIds.length);
+          var garrisonBroken = garrison.soldiers <= Math.ceil(garrison.maxSoldiers * 0.25);
+          var canAnnex = garrisonBroken && activeCs.gold >= annexCost;
+
+          box.innerHTML =
+            '<div style="font-weight:900;font-size:14.5px;color:#7f1d1d;">⚔️ Invasion & Annexion de ' + current.name + ' (depuis ' + activeC.name + ')</div>' +
+            '<div class="pills-row" style="margin-bottom:10px;">' +
+              '<span class="stat-pill blue">Ton attaque : ' + formatFr(myPow.attack) + '</span>' +
+              '<span class="stat-pill">Garnison : ' + formatFr(garrison.soldiers) + ' soldats</span>' +
+              '<span class="stat-pill red">⏱️ Temps de marche : ' + formatDuration(travelSec) + '</span>' +
+              '<span class="stat-pill green">Victoire : ' + nWinPct + ' %</span>' +
+              '<span class="stat-pill gold">👑 Annexion : ' + formatFr(annexCost) + ' or</span>' +
+            '</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">' +
+              '<button type="button" class="primary-btn danger" id="btn-launch-neutral" style="padding:10px 14px;font-size:13px;">⚔️ Attaquer (' + formatDuration(travelSec) + ')</button>' +
+              '<button type="button" class="primary-btn" id="btn-annex-country" style="padding:10px 14px;font-size:13px;"' + (canAnnex ? '' : ' disabled') + '>👑 Prendre le contrôle (' + formatFr(annexCost) + ' or)</button>' +
+            '</div>' +
+            '<div style="margin-top:6px;font-size:12px;color:#7f1d1d;">' +
+              (garrisonBroken
+                ? '✓ Garnison ennemie brisée ! Paie le tribut colossal de ' + formatFr(annexCost) + ' or pour annexer ce pays.'
+                : 'Affaiblis d’abord la garnison à ≤ 25 % (' + formatFr(Math.ceil(garrison.maxSoldiers * 0.25)) + ' soldats max) avant de pouvoir annexer le pays.') +
+            '</div>' +
+            (state.multi.lastCombatReport ? '<div style="margin-top:8px;font-size:13px;font-weight:800;color:#0f172a;">' + state.multi.lastCombatReport + '</div>' : '');
+
+          document.getElementById('map-card').appendChild(box);
+          document.getElementById('btn-launch-neutral').addEventListener('click', function () { launchMilitaryCampaign(activeC, current, null); });
+          document.getElementById('btn-annex-country').addEventListener('click', function () { annexCountry(current); });
+        }
+      }
+
+      cardAction.addEventListener('click', function () {
+        if (!state.selectedId) return;
+        var remoteOwners = getRemoteCountryOwners();
+        if (state.ownedIds.length === 0) {
+          if (remoteOwners[state.selectedId]) return;
+          state.ownedIds = [state.selectedId];
+          state.activeOwnedId = state.selectedId;
+          ensureCountryState(getCountryById(state.selectedId));
+          pushCloudSave(true);
+          if (state.multi.connected) syncMultiplayerPresence();
+          refreshMapStyles();
+          switchTab('country', state.selectedId);
+        } else if (isCountryOwned(state.selectedId)) {
+          switchTab('country', state.selectedId);
+        }
+      });
+
+      // Modale Cloud (Pseudo + PIN à 4 chiffres)
+      var cloudModal = document.getElementById('cloud-modal');
+      var tabAuthLogin = document.getElementById('tab-auth-login');
+      var tabAuthRegister = document.getElementById('tab-auth-register');
+      var btnCloudSubmit = document.getElementById('btn-cloud-submit');
+      var cloudFeedback = document.getElementById('cloud-feedback');
+
+      function setAuthTab(mode) {
+        state.cloud.authMode = mode;
+        tabAuthLogin.classList.toggle('active', mode === 'login');
+        tabAuthRegister.classList.toggle('active', mode === 'register');
+        btnCloudSubmit.textContent = mode === 'login' ? 'Charger ma sauvegarde' : 'Créer mon profil & Sauvegarder';
+        cloudFeedback.textContent = '';
+      }
+
+      tabAuthLogin.addEventListener('click', function () { setAuthTab('login'); });
+      tabAuthRegister.addEventListener('click', function () { setAuthTab('register'); });
+
+      document.getElementById('btn-cloud-modal').addEventListener('click', function () {
+        cloudFeedback.textContent = '';
+        if (state.cloud.username) document.getElementById('cloud-username').value = state.cloud.username;
+        if (state.cloud.pin) document.getElementById('cloud-pin').value = state.cloud.pin;
+        cloudModal.classList.add('open');
+      });
+
+      document.getElementById('close-cloud-modal').addEventListener('click', function () {
+        cloudModal.classList.remove('open');
+      });
+
+      document.getElementById('btn-play-guest').addEventListener('click', function () {
+        cloudModal.classList.remove('open');
+      });
+
+      document.getElementById('cloud-auth-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var userVal = (document.getElementById('cloud-username').value || '').trim();
+        var pinVal = (document.getElementById('cloud-pin').value || '').trim();
+        if (!userVal || !/^[0-9]{4}$/.test(pinVal)) {
+          cloudFeedback.style.color = '#dc2626';
+          cloudFeedback.textContent = 'Entre un pseudo valide et un code PIN de 4 chiffres.';
+          return;
+        }
+        cloudFeedback.style.color = '#0284c7';
+        cloudFeedback.textContent = 'Connexion en cours...';
+
+        if (state.cloud.authMode === 'login') {
+          pullCloudSave(userVal, pinVal, false).then(function (res) {
+            if (res.ok) {
+              cloudFeedback.style.color = '#15803d';
+              cloudFeedback.textContent = '✓ Partie restaurée avec succès !';
+              setTimeout(function () { cloudModal.classList.remove('open'); }, 500);
+            } else {
+              cloudFeedback.style.color = '#dc2626';
+              cloudFeedback.textContent = res.reason;
+            }
+          });
+        } else {
+          registerCloudSave(userVal, pinVal).then(function (res) {
+            if (res.ok) {
+              cloudFeedback.style.color = '#15803d';
+              cloudFeedback.textContent = '✓ Profil créé ! Ta partie est sauvegardée automatiquement.';
+              setTimeout(function () { cloudModal.classList.remove('open'); }, 500);
+            } else {
+              cloudFeedback.style.color = '#dc2626';
+              cloudFeedback.textContent = res.reason;
+            }
+          });
+        }
+      });
+
+      document.getElementById('btn-cloud-sync-now').addEventListener('click', function () {
+        pushCloudSave(true);
+        cloudFeedback.style.color = '#15803d';
+        cloudFeedback.textContent = '✓ Synchronisation Cloud effectuée !';
+      });
+
+      document.getElementById('btn-cloud-logout').addEventListener('click', function () {
+        state.cloud.connected = false;
+        state.cloud.username = '';
+        state.cloud.pin = '';
+        try { localStorage.removeItem(LOCAL_CACHE_KEY); } catch (e) {}
+        updateCloudHudStatus();
+        cloudFeedback.style.color = '#475569';
+        cloudFeedback.textContent = 'Déconnecté du profil Cloud.';
+      });
+
+      document.getElementById('close-offline-toast').addEventListener('click', function () {
+        document.getElementById('offline-toast').style.display = 'none';
+      });
+
+      // =========================================================================
+      // 13. BOUCLES TEMPS RÉEL (REVENUS, GÉNIE, CAMPAGNES, SYNC CLOUD)
+      // =========================================================================
+      setInterval(function () {
+        if (state.ownedIds.length === 0) return;
+
+        for (var i = 0; i < state.ownedIds.length; i++) {
+          var owned = getCountryById(state.ownedIds[i]);
+          if (!owned) continue;
+          var cs = ensureCountryState(owned);
+          cs.gold += cs.mines * MINE_RATE;
+
+          if (cs.genius.activeMission) {
+            var am = cs.genius.activeMission;
+            var rem = (am.startedAt + am.durationMs - Date.now()) / 1000;
+            if (rem <= 0) {
+              completeGeniusMission(owned, owned.id !== state.activeOwnedId);
+            } else if (owned.id === state.activeOwnedId) {
+              var timerBadge = document.getElementById('genius-timer-badge');
+              var progFill = document.getElementById('genius-progress-fill');
+              if (timerBadge) timerBadge.textContent = '⏱️ ' + formatDuration(rem);
+              if (progFill) {
+                var pct = Math.min(100, Math.max(0, Math.round(((Date.now() - am.startedAt) / am.durationMs) * 100)));
+                progFill.style.width = pct + '%';
+              }
+            }
+          }
+        }
+
+        updateHeaderHud();
+        renderRoutesOnMap();
+
+        if (state.campaigns.length > 0) {
+          resolveArrivedCampaigns(false);
+          for (var c = 0; c < state.campaigns.length; c++) {
+            var camp = state.campaigns[c];
+            var badge = document.querySelector('[data-camp-timer="' + camp.id + '"]');
+            if (badge) {
+              var cRem = Math.max(0, (camp.startedAt + camp.durationMs - Date.now()) / 1000);
+              badge.textContent = '⏱️ Impact dans ' + formatDuration(cRem);
+            }
+          }
+        }
+      }, 1000);
+
+      // Synchronisation Cloud & Multijoueur toutes les 8 secondes
+      setInterval(function () {
+        pushCloudSave(false);
+        if (state.multi.connected) syncMultiplayerPresence();
+      }, 8000);
+
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') pushCloudSave(false);
+      });
+      window.addEventListener('pagehide', function () { pushCloudSave(false); });
+      window.addEventListener('beforeunload', function () { pushCloudSave(false); });
+
+      // =========================================================================
+      // 14. INITIALISATION IMMÉDIATE AU CHARGEMENT
+      // =========================================================================
+      var hasCachedSession = false;
+      try {
+        var cachedRaw = localStorage.getItem(LOCAL_CACHE_KEY);
+        if (cachedRaw) {
+          var cached = JSON.parse(cachedRaw);
+          if (cached && cached.save) applySaveObject(cached.save);
+          if (cached && cached.cloud && cached.cloud.username && cached.cloud.pin) {
+            state.cloud.username = cached.cloud.username;
+            state.cloud.pin = cached.cloud.pin;
+            state.cloud.connected = true;
+            hasCachedSession = true;
+          }
+        }
+      } catch (e) {}
+
+      buildMapSvg();
+      applyViewBox();
+      processOfflineProgress();
+      updateNavigationUI();
+      updateCloudHudStatus();
+      renderCampaignsPanel();
+      renderMultiPanel();
+
+      if (state.multi.connected && state.multi.roomCode) {
+        connectToMultiplayerRoom(state.multi.roomCode);
+      }
+
+      if (state.activeTab === 'country' && state.ownedIds.length > 0) {
+        renderCountryView();
+      } else {
+        renderMapCard();
+      }
+
+      // Si le navigateur a réinitialisé la mémoire locale (nouvelle ouverture), ouvrir l'écran de connexion rapide Pseudo + PIN
+      if (!hasCachedSession && state.ownedIds.length === 0) {
+        cloudModal.classList.add('open');
+      }
+    })();
+  </script>
+</body>
+</html>
